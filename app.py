@@ -94,23 +94,12 @@ def package_releases_update(graph_hosts: str=None, graph_port: int=None, pypi_rs
                          package_name, package_version)
 
 
-@click.group()
+@click.command()
 @click.pass_context
 @click.option('-v', '--verbose', is_flag=True,
               help="Be verbose about what's going on.")
 @click.option('--version', is_flag=True, is_eager=True, callback=_print_version, expose_value=False,
               help="Print version and exit.")
-def cli(ctx=None, verbose=0):
-    """Check upstream releases and create entries in the graph database for the new ones."""
-    if ctx:
-        ctx.auto_envvar_prefix = 'THOTH_PACKAGE_RELEASES'
-
-    if verbose:
-        _LOGGER.setLevel(logging.DEBUG)
-        _LOGGER.debug("Debug mode turned on")
-
-
-@cli.command()
 @click.option('--graph-hosts', type=str, default=[GraphDatabase.DEFAULT_HOST],
               show_default=True, metavar=GraphDatabase.ENVVAR_HOST_NAME,
               envvar=GraphDatabase.ENVVAR_HOST_NAME, multiple=True,
@@ -120,8 +109,15 @@ def cli(ctx=None, verbose=0):
               help="Port number to the graph instance to perform queries for unknown packages.")
 @click.option('--pypi-rss-feed', '-r', type=str, default=PYPI_RSS_UPDATES, show_default=True, metavar='URL',
               help="PyPI RSS feed to be used.")
-def pypi(pypi_rss_feed=None, graph_hosts=None, graph_port=None):
+def cli(ctx=None, verbose=False, pypi_rss_feed=None, graph_hosts=None, graph_port=None):
     """Check for updates in PyPI RSS feed and add missing entries to the graph database."""
+    if ctx:
+        ctx.auto_envvar_prefix = 'THOTH_PACKAGE_RELEASES'
+
+    if verbose:
+        _LOGGER.setLevel(logging.DEBUG)
+        _LOGGER.debug("Debug mode turned on")
+
     package_releases_update(graph_hosts=graph_hosts, graph_port=graph_port, pypi_rss_feed=pypi_rss_feed)
 
 

@@ -1,0 +1,7 @@
+#
+# This script defines s2i environment variables.
+#   see: https://github.com/sclorg/s2i-python-container/blob/master/3.6/README.md#environment-variables
+#
+
+#UPGRADE_PIP_TO_LATEST=1
+ENABLE_PIPENV=1

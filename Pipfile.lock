@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "757659c637478f0ed2c4f8ad8fc6db7346cdf8b52cca649db1e9840626303eb4"
+            "sha256": "3727257258f9c424932f042182ad9c729aba414d6d49f7e906455ad4276c021f"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -73,10 +73,10 @@
         },
         "certifi": {
             "hashes": [
-                "sha256:14131608ad2fd56836d33a71ee60fa1c82bc9d2c8d98b7bdbc631fe1b3cd1296",
-                "sha256:edbc3f203427eef571f79a7692bb160a2b0f7ccaa31953e99bd17e307cf63f7d"
+                "sha256:13e698f54293db9f89122b0581843a782ad0934a4fe0172d2a980ba77fc61bb7",
+                "sha256:9fa520c1bacfb634fa7af20a76bcbd3d5fb390481724c597da32c719a7dca4b0"
             ],
-            "version": "==2018.1.18"
+            "version": "==2018.4.16"
         },
         "chardet": {
             "hashes": [
@@ -252,10 +252,10 @@
         },
         "thoth-storages": {
             "hashes": [
-                "sha256:a832351746d0e7cc2ac5863128b7cba875b6a2604424d7c207c34e3eb85302a0",
-                "sha256:ea03a8ca8e4ee875322b3705eb1ed02f9b3d4bf2bc2b4c4ea5ae268f6e8bbc7e"
+                "sha256:3029117c7e71f774a2be9f1315c5c82a49936ea1f2e56aa710396d6c6f304e6a",
+                "sha256:a34f87e3d4994de84a2bb1578204bd48ed7e5e4e14f35b70d2194d4cdaf4a31f"
             ],
-            "version": "==0.0.16"
+            "version": "==0.0.18"
         },
         "tornado": {
             "hashes": [

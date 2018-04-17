@@ -7,7 +7,7 @@ name = "pypi"
 
 [packages]
 
-thoth-storages = ">=0.0.14"
+thoth-storages = ">=0.0.18"
 click = "*"
 thoth-common = ">=0.0.3"
 requests = "*"

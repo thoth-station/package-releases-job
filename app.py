@@ -8,9 +8,6 @@ import requests
 import click
 
 from thoth.common import init_logging
-from thoth.storages.graph.models import HasVersion
-from thoth.storages.graph.models import Package
-from thoth.storages.graph.models import PythonPackageVersion
 from thoth.storages import GraphDatabase
 from thoth.storages import __version__
 
@@ -46,7 +43,8 @@ def get_releases(pypi_rss_feed: str=None) -> list:
     return result
 
 
-def package_releases_update(graph_hosts: str=None, graph_port: int=None, pypi_rss_feed: str=None) -> None:
+def package_releases_update(graph_hosts: str=None, graph_port: int=None, pypi_rss_feed: str=None,
+                            only_if_package_seen: bool=False) -> None:
     """Check for PyPI releases and create entries in the graph database if needed."""
     releases = get_releases(pypi_rss_feed=pypi_rss_feed)
 
@@ -58,30 +56,11 @@ def package_releases_update(graph_hosts: str=None, graph_port: int=None, pypi_rs
         # We just create an entry in the graph database and let the solver update job do its work. These packages will
         # be orphaned by default as there will be no connection to solver as no solver solved it's dependencies.
         try:
-            # TODO: we could move this logic to thoth-storages to have this at one place
-            _LOGGER.debug("Checking package entry %r in the graph database", package_name)
-            python_package = Package.from_properties(
-                ecosystem='pypi',
-                package_name=package_name
+            existed = adapter.create_pypi_package_version(
+                package_name,
+                package_version,
+                only_if_package_seen=only_if_package_seen
             )
-            existed = python_package.get_or_create(adapter.g)
-            if existed:
-                _LOGGER.debug("Package entry %r already existed in the graph database", package_name)
-            else:
-                _LOGGER.debug("Package entry %r has been added to the graph database", package_name)
-
-            _LOGGER.debug("Checking %r in version %r in the graph database", package_name, package_version)
-            python_package_version = PythonPackageVersion.from_properties(
-                ecosystem='pypi',
-                package_name=package_name,
-                package_version=package_version
-            )
-            existed = python_package_version.get_or_create(adapter.g)
-
-            HasVersion.from_properties(
-                source=python_package,
-                target=python_package_version
-            ).get_or_create(adapter.g)
         except Exception as exc:
             _LOGGER.exception("Failed to create entry in the graph database for %r in version %r: %s",
                               package_name, package_version, str(exc))
@@ -90,8 +69,7 @@ def package_releases_update(graph_hosts: str=None, graph_port: int=None, pypi_rs
         if not existed:
             _LOGGER.info("Package %r in version %r was newly added", package_name, package_version)
         else:
-            _LOGGER.info("Package %r in version %r was already present in the graph database",
-                         package_name, package_version)
+            _LOGGER.info("Package %r in version %r was not added for tracking", package_name, package_version)
 
 
 @click.command()
@@ -109,7 +87,9 @@ def package_releases_update(graph_hosts: str=None, graph_port: int=None, pypi_rs
               help="Port number to the graph instance to perform queries for unknown packages.")
 @click.option('--pypi-rss-feed', '-r', type=str, default=PYPI_RSS_UPDATES, show_default=True, metavar='URL',
               help="PyPI RSS feed to be used.")
-def cli(ctx=None, verbose=False, pypi_rss_feed=None, graph_hosts=None, graph_port=None):
+@click.option('--only-if-package-seen', is_flag=True, envvar='THOTH_PACKAGE_RELEASES_ONLY_IF_PACKAGE_SEEN',
+              help="Create entries only for packages for which entries already exist in the graph database.")
+def cli(ctx=None, verbose=False, pypi_rss_feed=None, graph_hosts=None, graph_port=None, only_if_package_seen=False):
     """Check for updates in PyPI RSS feed and add missing entries to the graph database."""
     if ctx:
         ctx.auto_envvar_prefix = 'THOTH_PACKAGE_RELEASES'
@@ -118,7 +98,12 @@ def cli(ctx=None, verbose=False, pypi_rss_feed=None, graph_hosts=None, graph_por
         _LOGGER.setLevel(logging.DEBUG)
         _LOGGER.debug("Debug mode turned on")
 
-    package_releases_update(graph_hosts=graph_hosts, graph_port=graph_port, pypi_rss_feed=pypi_rss_feed)
+    package_releases_update(
+        graph_hosts=graph_hosts,
+        graph_port=graph_port,
+        pypi_rss_feed=pypi_rss_feed,
+        only_if_package_seen=only_if_package_seen
+    )
 
 
 if __name__ == '__main__':

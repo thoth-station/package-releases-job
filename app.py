@@ -48,7 +48,6 @@ def package_releases_update(graph_hosts: str=None, graph_port: int=None, pypi_rs
     """Check for PyPI releases and create entries in the graph database if needed."""
     releases = get_releases(pypi_rss_feed=pypi_rss_feed)
 
-    _LOGGER.debug("Connecting to the graph database, host %r and port %d", graph_hosts, graph_port)
     adapter = GraphDatabase(hosts=graph_hosts, port=graph_port)
     adapter.connect()
 
@@ -78,11 +77,10 @@ def package_releases_update(graph_hosts: str=None, graph_port: int=None, pypi_rs
               help="Be verbose about what's going on.")
 @click.option('--version', is_flag=True, is_eager=True, callback=_print_version, expose_value=False,
               help="Print version and exit.")
-@click.option('--graph-hosts', type=str, default=[GraphDatabase.DEFAULT_HOST],
-              show_default=True, metavar=GraphDatabase.ENVVAR_HOST_NAME,
+@click.option('--graph-hosts', type=str, metavar=GraphDatabase.ENVVAR_HOST_NAME,
               envvar=GraphDatabase.ENVVAR_HOST_NAME, multiple=True,
               help="Hostname to the graph instance to perform queries for unknown packages.")
-@click.option('--graph-port', type=int, default=GraphDatabase.DEFAULT_PORT, show_default=True, metavar='PORT',
+@click.option('--graph-port', type=int, metavar='PORT',
               envvar=GraphDatabase.ENVVAR_HOST_PORT,
               help="Port number to the graph instance to perform queries for unknown packages.")
 @click.option('--pypi-rss-feed', '-r', type=str, default=PYPI_RSS_UPDATES, show_default=True, metavar='URL',
@@ -96,7 +94,8 @@ def cli(ctx=None, verbose=False, pypi_rss_feed=None, graph_hosts=None, graph_por
 
     if verbose:
         _LOGGER.setLevel(logging.DEBUG)
-        _LOGGER.debug("Debug mode turned on")
+
+    _LOGGER.debug("Debug mode turned on")
 
     package_releases_update(
         graph_hosts=graph_hosts,

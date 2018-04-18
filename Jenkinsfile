@@ -2,13 +2,13 @@
 OPENSHIFT_SERVICE_ACCOUNT = 'jenkins'
 DOCKER_REGISTRY = env.CI_DOCKER_REGISTRY ?: 'docker-registry.default.svc.cluster.local:5000'
 CI_NAMESPACE= env.CI_PIPELINE_NAMESPACE ?: 'ai-coe'
-CI_TEST_NAMESPACE = env.CI_THOTH_TEST_NAMESPACE ?: CI_NAMESPACE
+CI_TEST_NAMESPACE = env.CI_THOTH_TEST_NAMESPACE ?: 'ai-coe'
 
 STABLE_LABEL = "stable"
 tagMap = [:]
 
 // Initialize
-tagMap['package-releases-job'] = '0.1.0'
+tagMap['package-releases-cronjob'] = '0.1.0'
 
 // IRC properties
 IRC_NICK = "aicoe-bot"
@@ -65,6 +65,22 @@ pipeline {
         }
     }
     stages {
+        stage("Create BuildConfig") {
+            steps {
+                script {
+                    openshift.withCluster() {
+                        openshift.withProject(CI_TEST_NAMESPACE) {
+                            if (!openshift.selector("template/thoth-package-releases-buildconfig").exists()) {
+                                openshift.apply(readFile('openshift/buildConfig-template.yaml'))
+                                echo "BuildConfig Template created!"
+                            }    
+
+                            // TODO create BC but dont init build                  
+                        }
+                    }                    
+                }
+            }
+        }
         stage("Setup BuildConfig") {
             steps {
                 script {                    
@@ -84,20 +100,14 @@ pipeline {
 
                     openshift.withCluster() {
                         openshift.withProject(CI_TEST_NAMESPACE) {
-                            if (!openshift.selector("template/thoth-package-releases-buildconfig").exists()) {
-                                openshift.apply(readFile('openshift/buildConfig-template.yaml'))
-                                echo "BuildConfig Template created!"
-                            }
-
                             /* Process the template and return the Map of the result */
                             def model = openshift.process('thoth-package-releases-buildconfig',
                                     "-p", 
                                     "IMAGE_STREAM_TAG=${env.TAG}",
                                     "GITHUB_URL=https://github.com/${org}/${repo}",
-                                    "GITHUB_REF=${env.REF}",
-                                    "THOTH_BACKEND_NAMESPACE=${env.CI_TEST_NAMESPACE}")
+                                    "GITHUB_REF=${env.REF}")
 
-                            createdObjects = openshift.apply(model)
+                            createdObjects = openshift.apply(model) // FIXME This will fail if the BC is not present
                         }
                     }
                 }
@@ -121,7 +131,7 @@ pipeline {
                     steps {
                         echo "Building Thoth Package Releases Job container image..."
                         script {
-                            tagMap['user-api'] = aIStacksPipelineUtils.buildImageWithTag(CI_TEST_NAMESPACE, "package-releases", "${env.TAG}")
+                            tagMap['package-releases'] = aIStacksPipelineUtils.buildImageWithTag(CI_TEST_NAMESPACE, "package-releases-cronjob", "${env.TAG}")
                         }
 
                     } // steps
@@ -131,13 +141,11 @@ pipeline {
         stage("Tag Container Image as Test") {
             steps {
                 script {
-                    // aIStacksPipelineUtils.redeployFromImageStreamTag(CI_TEST_NAMESPACE, "user-api", "${env.TAG}")
-                    // redeploy from ImageStreamTag ${env.TAG}
                     openshift.withCluster() {
                         openshift.withProject(CI_TEST_NAMESPACE) {
-                            echo "Creating test tag from package-releases-job:${env.TAG}"
+                            echo "Creating test tag from package-releases-cronjob:${env.TAG}"
 
-                            openshift.tag("${CI_TEST_NAMESPACE}/package-releases-job:${env.TAG}", "${CI_TEST_NAMESPACE}/package-releases-job:test")
+                            openshift.tag("${CI_TEST_NAMESPACE}/package-releases-cronjob:${env.TAG}", "${CI_TEST_NAMESPACE}/package-releases-cronjob:test")
                         }
                     } // withCluster
                 }
@@ -156,9 +164,9 @@ pipeline {
                     // Tag ImageStreamTag ${env.TAG} as our new :stable
                     openshift.withCluster() {
                         openshift.withProject(CI_TEST_NAMESPACE) {
-                            echo "Creating stable tag from package-releases-job:${env.TAG}"
+                            echo "Creating stable tag from package-releases-cronjob:${env.TAG}"
 
-                            openshift.tag("${CI_TEST_NAMESPACE}/package-releases-job:${env.TAG}", "${CI_TEST_NAMESPACE}/package-releases-job:stable")
+                            openshift.tag("${CI_TEST_NAMESPACE}/package-releases-cronjob:${env.TAG}", "${CI_TEST_NAMESPACE}/package-releases-cronjob:stable")
                         }
                     } // withCluster
                 } // script
@@ -185,14 +193,15 @@ pipeline {
         success {
             echo "All Systems GO!"
         }
-        failure {
-            script {
-                mattermostSend channel: "#thoth-station", 
-                    icon: 'https://avatars1.githubusercontent.com/u/33906690', 
-                    message: "${JOB_NAME} #${BUILD_NUMBER}: ${currentBuild.currentResult}: ${BUILD_URL}"
-
-                error "BREAK BREAK BREAK - build failed!"
-            }
-        }
+/*        failure {
+ *           script {
+ *               mattermostSend channel: "#thoth-station", 
+ *                   icon: 'https://avatars1.githubusercontent.com/u/33906690', 
+ *                   message: "${JOB_NAME} #${BUILD_NUMBER}: ${currentBuild.currentResult}: ${BUILD_URL}"
+ *
+ *               error "BREAK BREAK BREAK - build failed!"
+ *           }
+ *       }
+ */
     }
 }

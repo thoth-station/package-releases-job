@@ -8,7 +8,7 @@ metadata:
   annotations:
     description: This is Thoth Core - Package Releases Job
     openshift.io/display-name: "Thoth: Package Releases Job"
-    version: 0.1.0
+    version: 0.1.1
     tags: poc,thoth,ai-stacks,package-releases
     template.openshift.io/documentation-url: https://github.com/Thoth-Station/
     template.openshift.io/long-description: This template defines resources needed to deploy Thoth Package Releases Job as a Proof-of-Concept to OpenShift.
@@ -19,7 +19,6 @@ objects:
   apiVersion: batch/v2alpha1
   metadata:
     name: package-releases
-    namespace: ${THOTH_BACKEND_NAMESPACE}
     labels:
       app: thoth-core
   spec:
@@ -60,14 +59,7 @@ objects:
     labels:
       app: thoth-core
     name: package-releases-job
-    namespace: ${THOTH_BACKEND_NAMESPACE}
   spec:
     name: latest
     lookupPolicy:
-      local: true    
-
-parameters:
-- description: Name of the Thoth Backend Namespace
-  displayName: Thoth Backend Namespace
-  required: true
-  name: THOTH_BACKEND_NAMESPACE
+      local: true

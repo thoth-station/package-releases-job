@@ -18,7 +18,7 @@ objects:
 - kind: BuildConfig
   apiVersion: v1
   metadata:
-    name: package-releases
+    name: package-releases-job
     labels:
       app: thoth-core
   spec:

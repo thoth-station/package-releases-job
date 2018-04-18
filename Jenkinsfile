@@ -8,7 +8,7 @@ STABLE_LABEL = "stable"
 tagMap = [:]
 
 // Initialize
-tagMap['package-releases-cronjob'] = '0.1.0'
+tagMap['package-releases-job'] = '0.1.0'
 
 // IRC properties
 IRC_NICK = "aicoe-bot"
@@ -131,7 +131,7 @@ pipeline {
                     steps {
                         echo "Building Thoth Package Releases Job container image..."
                         script {
-                            tagMap['package-releases'] = aIStacksPipelineUtils.buildImageWithTag(CI_TEST_NAMESPACE, "package-releases-cronjob", "${env.TAG}")
+                            tagMap['package-releases'] = aIStacksPipelineUtils.buildImageWithTag(CI_TEST_NAMESPACE, "package-releases-job", "${env.TAG}")
                         }
 
                     } // steps
@@ -143,9 +143,9 @@ pipeline {
                 script {
                     openshift.withCluster() {
                         openshift.withProject(CI_TEST_NAMESPACE) {
-                            echo "Creating test tag from package-releases-cronjob:${env.TAG}"
+                            echo "Creating test tag from package-releases-job:${env.TAG}"
 
-                            openshift.tag("${CI_TEST_NAMESPACE}/package-releases-cronjob:${env.TAG}", "${CI_TEST_NAMESPACE}/package-releases-cronjob:test")
+                            openshift.tag("${CI_TEST_NAMESPACE}/package-releases-job:${env.TAG}", "${CI_TEST_NAMESPACE}/package-releases-job:test")
                         }
                     } // withCluster
                 }
@@ -164,9 +164,9 @@ pipeline {
                     // Tag ImageStreamTag ${env.TAG} as our new :stable
                     openshift.withCluster() {
                         openshift.withProject(CI_TEST_NAMESPACE) {
-                            echo "Creating stable tag from package-releases-cronjob:${env.TAG}"
+                            echo "Creating stable tag from package-releases-job:${env.TAG}"
 
-                            openshift.tag("${CI_TEST_NAMESPACE}/package-releases-cronjob:${env.TAG}", "${CI_TEST_NAMESPACE}/package-releases-cronjob:stable")
+                            openshift.tag("${CI_TEST_NAMESPACE}/package-releases-job:${env.TAG}", "${CI_TEST_NAMESPACE}/package-releases-job:stable")
                         }
                     } // withCluster
                 } // script

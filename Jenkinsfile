@@ -11,7 +11,7 @@ tagMap = [:]
 tagMap['package-releases-job'] = '0.1.0'
 
 // IRC properties
-IRC_NICK = "aicoe-bot"
+IRC_NICK = "sesheta"
 IRC_CHANNEL = "#thoth-station"
 
 tokens = "${env.JOB_NAME}".tokenize('/')
@@ -193,15 +193,5 @@ pipeline {
         success {
             echo "All Systems GO!"
         }
-/*        failure {
- *           script {
- *               mattermostSend channel: "#thoth-station", 
- *                   icon: 'https://avatars1.githubusercontent.com/u/33906690', 
- *                   message: "${JOB_NAME} #${BUILD_NUMBER}: ${currentBuild.currentResult}: ${BUILD_URL}"
- *
- *               error "BREAK BREAK BREAK - build failed!"
- *           }
- *       }
- */
     }
 }

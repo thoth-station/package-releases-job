@@ -55,7 +55,7 @@ def package_releases_update(graph_hosts: str=None, graph_port: int=None, pypi_rs
         # We just create an entry in the graph database and let the solver update job do its work. These packages will
         # be orphaned by default as there will be no connection to solver as no solver solved it's dependencies.
         try:
-            existed = adapter.create_pypi_package_version(
+            added = adapter.create_pypi_package_version(
                 package_name,
                 package_version,
                 only_if_package_seen=only_if_package_seen
@@ -65,7 +65,7 @@ def package_releases_update(graph_hosts: str=None, graph_port: int=None, pypi_rs
                               package_name, package_version, str(exc))
             continue
 
-        if not existed:
+        if added:
             _LOGGER.info("Package %r in version %r was newly added", package_name, package_version)
         else:
             _LOGGER.info("Package %r in version %r was not added for tracking", package_name, package_version)

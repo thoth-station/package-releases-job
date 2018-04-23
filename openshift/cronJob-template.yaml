@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: Template
 labels:
-  template: thoth-package-releases-cronjob
+  template: package-releases-cronjob
   thoth: 0.1.0
 metadata:
-  name: thoth-package-releases-cronjob
+  name: package-releases-cronjob
   annotations:
     description: This is Thoth Core - Package Releases Job
     openshift.io/display-name: "Thoth: Package Releases Job"

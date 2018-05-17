@@ -10,6 +10,10 @@ thoth-common = ">=0.0.3"
 requests = "*"
 
 [dev-packages]
+coala = "*"
+pycodestylebear = "*"
+yamllintbear = "*"
+pydocstylebear = "*"
 
 [requires]
 python_version = "3.6"

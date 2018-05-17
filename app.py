@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
+"""Check for new releases on Python index and mark new packages in the graph database."""
 
 import logging
 from xml.etree import ElementTree

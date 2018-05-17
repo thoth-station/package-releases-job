@@ -38,6 +38,7 @@ PYPI_RSS_UPDATES = 'https://pypi.org/rss/updates.xml'
 prometheus_registry = CollectorRegistry()
 _METRIC_PACKAGES_NEW = Gauge('packages_added', 'Packages newly added', registry=prometheus_registry)
 
+
 def _print_version(ctx, _, value):
     """Print package releases version and exit."""
     if not value or ctx.resilient_parsing:

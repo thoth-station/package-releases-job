@@ -8,6 +8,8 @@ thoth-storages = ">=0.0.27"
 click = "*"
 thoth-common = ">=0.0.3"
 requests = "*"
+yarl = "<1.2"
+prometheus-client = "*"
 
 [dev-packages]
 coala = "*"

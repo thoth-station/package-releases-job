@@ -21,8 +21,10 @@ import logging
 from xml.etree import ElementTree
 
 import requests
+import os
 
 import click
+from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 
 from thoth.common import init_logging
 from thoth.storages import GraphDatabase
@@ -33,6 +35,8 @@ init_logging()
 _LOGGER = logging.getLogger('thoth.package_releases')
 PYPI_RSS_UPDATES = 'https://pypi.org/rss/updates.xml'
 
+prometheus_registry = CollectorRegistry()
+_METRIC_PACKAGES_NEW = Gauge('packages_added', 'Packages newly added', registry=prometheus_registry)
 
 def _print_version(ctx, _, value):
     """Print package releases version and exit."""
@@ -84,6 +88,7 @@ def package_releases_update(graph_hosts: str=None, graph_port: int=None, pypi_rs
 
         if added:
             _LOGGER.info("Package %r in version %r was newly added", package_name, package_version)
+            _METRIC_PACKAGES_NEW.inc()
         else:
             _LOGGER.info("Package %r in version %r was not added for tracking", package_name, package_version)
 
@@ -120,6 +125,13 @@ def cli(ctx=None, verbose=False, pypi_rss_feed=None, graph_hosts=None, graph_por
         pypi_rss_feed=pypi_rss_feed,
         only_if_package_seen=only_if_package_seen
     )
+
+    push_gateway = os.getenv('PROMETHEUS_PUSH_GATEWAY')
+    if push_gateway:
+        try:
+            push_to_gateway(push_gateway, job='package-releases', registry=prometheus_registry)
+        except Exception as e:
+            print('An error occurred pushing the metrics: {}'.format(str(e)))
 
 
 if __name__ == '__main__':

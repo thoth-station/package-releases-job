@@ -126,12 +126,12 @@ def cli(ctx=None, verbose=False, pypi_rss_feed=None, graph_hosts=None, graph_por
         only_if_package_seen=only_if_package_seen
     )
 
-    push_gateway = os.getenv('PROMETHEUS_PUSH_GATEWAY')
+    push_gateway = os.getenv('PROMETHEUS_PUSH_GATEWAY', 'pushgateway:9091')
     if push_gateway:
         try:
             push_to_gateway(push_gateway, job='package-releases', registry=prometheus_registry)
         except Exception as e:
-            print('An error occurred pushing the metrics: {}'.format(str(e)))
+            _LOGGER.exception('An error occurred pushing the metrics: {}'.format(str(e)))
 
 
 if __name__ == '__main__':

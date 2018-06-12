@@ -8,7 +8,7 @@ STABLE_LABEL = "stable"
 tagMap = [:]
 
 // Initialize
-tagMap['package-releases-job'] = '0.1.0'
+tagMap['package-releases-job'] = '0.2.0'
 
 // IRC properties
 IRC_NICK = "sesheta"

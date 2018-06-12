@@ -15,6 +15,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
+
 """Check for new releases on Python index and mark new packages in the graph database."""
 
 import logging
@@ -28,7 +29,11 @@ from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 
 from thoth.common import init_logging
 from thoth.storages import GraphDatabase
-from thoth.storages import __version__
+from thoth.storages import __version__ as thoth_storages_version
+
+
+__version__ = '0.2.0' + '+thoth_storage.' + thoth_storages_version
+
 
 init_logging()
 

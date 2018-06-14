@@ -9,6 +9,7 @@ click = "*"
 thoth-common = "*"
 requests = "*"
 prometheus-client = "*"
+pyyaml = "*"
 
 [dev-packages]
 coala = "*"

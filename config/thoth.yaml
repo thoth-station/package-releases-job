@@ -1,0 +1,5 @@
+---
+tensorflow:
+  triggers:
+    - url: "{TENSORFLOW_BUILD_WEBHOOK}"
+      tls_verify: false

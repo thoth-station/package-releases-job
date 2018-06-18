@@ -19,10 +19,12 @@
 """Check for new releases on Python index and mark new packages in the graph database."""
 
 import logging
+import typing
 from xml.etree import ElementTree
 
-import requests
 import os
+import requests
+import yaml
 
 import click
 from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
@@ -39,6 +41,7 @@ init_logging()
 
 _LOGGER = logging.getLogger('thoth.package_releases')
 PYPI_RSS_UPDATES = 'https://pypi.org/rss/updates.xml'
+PROMETHEUS_PUSH_GATEWAY = os.getenv('PROMETHEUS_PUSH_GATEWAY')
 
 prometheus_registry = CollectorRegistry()
 _METRIC_PACKAGES_NEW = Gauge('packages_added', 'Packages newly added', registry=prometheus_registry)
@@ -70,7 +73,46 @@ def get_releases(pypi_rss_feed: str=None) -> list:
     return result
 
 
-def package_releases_update(graph_hosts: str=None, graph_port: int=None, pypi_rss_feed: str=None,
+def _load_package_monitoring_config(config_path: str) -> typing.Optional[dict]:
+    """Load package monitoring configuration, retrieve it from a remote HTTP server if needed."""
+    if not config_path:
+        return None
+
+    if config_path.startswith(('https://', 'http://')):
+        _LOGGER.debug(f"Loading remote monitoring config from {config_path}")
+        content = requests.get(config_path)
+        content.raise_for_status()
+        content = content.text
+    else:
+        _LOGGER.debug(f"Loading local monitoring config from {config_path}")
+        with open(config_path, 'r') as config_file:
+            content = config_file.read()
+
+    return yaml.load(content)
+
+
+def release_notification(monitored_packages: dict, package_name: str) -> bool:
+    """Check for release notification in monitoring configuration and trigger notification if requested."""
+    was_triggered = False
+    for trigger in monitored_packages.get(package_name, {}).get('triggers') or []:
+        _LOGGER.debug(f"Triggering release notification for {package_name}")
+        try:
+            response = requests.post(
+                trigger['url'].format(**os.environ),
+                verify=trigger.get('tls_verify', True)
+            )
+            response.raise_for_status()
+            was_triggered = True
+            _LOGGER.info(f"Successfully triggered release notification for {package_name} to {trigger['url']}")
+        except Exception as exc:
+            _LOGGER.exception(f"Failed to trigger release notification for {package_name} for trigger {trigger}, "
+                              f"error is not fatal: {str(exc)}")
+
+    return was_triggered
+
+
+def package_releases_update(monitored_packages: dict,
+                            graph_hosts: str=None, graph_port: int=None, pypi_rss_feed: str=None,
                             only_if_package_seen: bool=False) -> None:
     """Check for PyPI releases and create entries in the graph database if needed."""
     releases = get_releases(pypi_rss_feed=pypi_rss_feed)
@@ -79,6 +121,7 @@ def package_releases_update(graph_hosts: str=None, graph_port: int=None, pypi_rs
     adapter.connect()
 
     for package_name, package_version in releases:
+        _LOGGER.debug(f"Found release entry in RSS feed for package {package_name} in version {package_version}")
         # We just create an entry in the graph database and let the solver update job do its work. These packages will
         # be orphaned by default as there will be no connection to solver as no solver solved it's dependencies.
         try:
@@ -98,6 +141,12 @@ def package_releases_update(graph_hosts: str=None, graph_port: int=None, pypi_rs
         else:
             _LOGGER.info("Package %r in version %r was not added for tracking", package_name, package_version)
 
+        if monitored_packages:
+            try:
+                release_notification(monitored_packages, package_name)
+            except Exception as exc:
+                _LOGGER.exception(f"Failed to do release notification, error is not fatal: {str(exc)}")
+
 
 @click.command()
 @click.pass_context
@@ -113,9 +162,13 @@ def package_releases_update(graph_hosts: str=None, graph_port: int=None, pypi_rs
               help="Port number to the graph instance to perform queries for unknown packages.")
 @click.option('--pypi-rss-feed', '-r', type=str, default=PYPI_RSS_UPDATES, show_default=True, metavar='URL',
               help="PyPI RSS feed to be used.")
+@click.option('--monitoring-config', '-m', type=str, show_default=True, metavar='CONFIG',
+              envvar='THOTH_PACKAGE_RELEASES_MONITORING_CONFIG',
+              help="PyPI RSS feed to be used.")
 @click.option('--only-if-package-seen', is_flag=True, envvar='THOTH_PACKAGE_RELEASES_ONLY_IF_PACKAGE_SEEN',
               help="Create entries only for packages for which entries already exist in the graph database.")
-def cli(ctx=None, verbose=False, pypi_rss_feed=None, graph_hosts=None, graph_port=None, only_if_package_seen=False):
+def cli(ctx=None, verbose=False, pypi_rss_feed=None, monitoring_config: str=None,
+        graph_hosts=None, graph_port=None, only_if_package_seen=False):
     """Check for updates in PyPI RSS feed and add missing entries to the graph database."""
     if ctx:
         ctx.auto_envvar_prefix = 'THOTH_PACKAGE_RELEASES'
@@ -125,17 +178,25 @@ def cli(ctx=None, verbose=False, pypi_rss_feed=None, graph_hosts=None, graph_por
 
     _LOGGER.debug("Debug mode turned on")
 
+    monitored_packages = None
+    if monitoring_config:
+        try:
+            monitored_packages = _load_package_monitoring_config(monitoring_config)
+        except Exception:
+            _LOGGER.exception(f"Failed to load monitoring configuration from {monitoring_config}")
+            raise
+
     package_releases_update(
+        monitored_packages,
         graph_hosts=graph_hosts,
         graph_port=graph_port,
         pypi_rss_feed=pypi_rss_feed,
         only_if_package_seen=only_if_package_seen
     )
 
-    push_gateway = os.getenv('PROMETHEUS_PUSH_GATEWAY', 'pushgateway:9091')
-    if push_gateway:
+    if PROMETHEUS_PUSH_GATEWAY:
         try:
-            push_to_gateway(push_gateway, job='package-releases', registry=prometheus_registry)
+            push_to_gateway(PROMETHEUS_PUSH_GATEWAY, job='package-releases', registry=prometheus_registry)
         except Exception as e:
             _LOGGER.exception('An error occurred pushing the metrics: {}'.format(str(e)))
 

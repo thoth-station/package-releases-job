@@ -70,7 +70,7 @@ pipeline {
                 script {
                     openshift.withCluster() {
                         openshift.withProject(CI_TEST_NAMESPACE) {
-                            if (!openshift.selector("template/thoth-package-releases-buildconfig").exists()) {
+                            if (!openshift.selector("template/package-releases-buildconfig").exists()) {
                                 openshift.apply(readFile('openshift/buildConfig-template.yaml'))
                                 echo "BuildConfig Template created!"
                             }    
@@ -101,7 +101,7 @@ pipeline {
                     openshift.withCluster() {
                         openshift.withProject(CI_TEST_NAMESPACE) {
                             /* Process the template and return the Map of the result */
-                            def model = openshift.process('thoth-package-releases-buildconfig',
+                            def model = openshift.process('package-releases-buildconfig',
                                     "-p", 
                                     "IMAGE_STREAM_TAG=${env.TAG}",
                                     "GITHUB_URL=https://github.com/${org}/${repo}",

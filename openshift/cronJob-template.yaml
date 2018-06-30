@@ -11,54 +11,56 @@ metadata:
     version: 0.2.0
     tags: poc,thoth,ai-stacks,package-releases
     template.openshift.io/documentation-url: https://github.com/Thoth-Station/
-    template.openshift.io/long-description: This template defines resources needed to deploy Thoth Package Releases Job as a Proof-of-Concept to OpenShift.
+    template.openshift.io/long-description: >
+      This template defines resources needed to deploy Thoth Package
+      Releases Job as a Proof-of-Concept to OpenShift.
     template.openshift.io/provider-display-name: Red Hat, Inc.
 
 objects:
-- kind: CronJob
-  apiVersion: batch/v2alpha1
-  metadata:
-    name: package-releases
-    labels:
-      app: thoth-core
-  spec:
-    schedule: '*/6 * * * *'
-    suspend: true
-    concurrencyPolicy: Forbid
-    successfulJobsHistoryLimit: 4
-    failedJobsHistoryLimit: 4
-    jobTemplate:
-      spec:
-        template:
-          spec:
-            containers:
-            - image: package-releases-job
-              name: package-releases
-              env:
-              - name: THOTH_JANUSGRAPH_HOST
-                value: 'janusgraph'
-              - name: THOTH_JANUSGRAPH_PORT
-                value: '80'
-              - name: THOTH_PACKAGE_RELEASES_ONLY_IF_PACKAGE_SEEN
-                valueFrom:
-                  configMapKeyRef:
-                    key: package-releases-only-if-package-seen
-                    name: thoth                   
-              - name: RSYSLOG_HOST
-                valueFrom:
-                 configMapKeyRef:
-                   key: rsyslog-host
-                   name: thoth
-              - name: RSYSLOG_PORT
-                valueFrom:
-                 configMapKeyRef:
-                   key: rsyslog-port
-                   name: thoth
-              resources:
-                requests:
-                  memory: "128Mi"
-                  cpu: "125m"
-                limits:
-                  memory: "512Mi"
-                  cpu: "250m"
-            restartPolicy: OnFailure
+  - kind: CronJob
+    apiVersion: batch/v2alpha1
+    metadata:
+      name: package-releases
+      labels:
+        app: thoth-core
+    spec:
+      schedule: '*/6 * * * *'
+      suspend: true
+      concurrencyPolicy: Forbid
+      successfulJobsHistoryLimit: 4
+      failedJobsHistoryLimit: 4
+      jobTemplate:
+        spec:
+          template:
+            spec:
+              containers:
+                - image: package-releases-job
+                  name: package-releases
+                  env:
+                    - name: THOTH_JANUSGRAPH_HOST
+                      value: 'janusgraph'
+                    - name: THOTH_JANUSGRAPH_PORT
+                      value: '80'
+                    - name: THOTH_PACKAGE_RELEASES_ONLY_IF_PACKAGE_SEEN
+                      valueFrom:
+                        configMapKeyRef:
+                          key: package-releases-only-if-package-seen
+                          name: thoth
+                    - name: RSYSLOG_HOST
+                      valueFrom:
+                      configMapKeyRef:
+                        key: rsyslog-host
+                        name: thoth
+                    - name: RSYSLOG_PORT
+                      valueFrom:
+                      configMapKeyRef:
+                        key: rsyslog-port
+                        name: thoth
+                  resources:
+                    requests:
+                      memory: "128Mi"
+                      cpu: "125m"
+                    limits:
+                      memory: "512Mi"
+                      cpu: "250m"
+              restartPolicy: OnFailure

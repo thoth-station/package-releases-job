@@ -3,3 +3,7 @@ tensorflow:
   triggers:
     - url: "{TENSORFLOW_BUILD_WEBHOOK}"
       tls_verify: false
+kebechet:
+  triggers:
+    - url: "{KEBECHET_BUILD_WEBHOOK}"
+      tls_verify: false

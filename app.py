@@ -41,7 +41,8 @@ init_logging()
 
 _LOGGER = logging.getLogger('thoth.package_releases')
 PYPI_RSS_UPDATES = 'https://pypi.org/rss/updates.xml'
-PROMETHEUS_PUSH_GATEWAY = os.getenv('PROMETHEUS_PUSH_GATEWAY')
+push_gateway_host = os.getenv('PROMETHEUS_PUSHGATEWAY_HOST')
+push_gateway_port = os.getenv('PROMETHEUS_PUSHGATEWAY_PORT')
 
 prometheus_registry = CollectorRegistry()
 _METRIC_PACKAGES_NEW_JUST_DISCOVERED = Gauge(
@@ -198,9 +199,9 @@ def cli(ctx=None, verbose=False, pypi_rss_feed=None, monitoring_config: str=None
         only_if_package_seen=only_if_package_seen
     )
 
-    if PROMETHEUS_PUSH_GATEWAY:
+    if push_gateway_host:
         try:
-            push_to_gateway(PROMETHEUS_PUSH_GATEWAY, job='package-releases', registry=prometheus_registry)
+            push_to_gateway(push_gateway_host:push_gateway_port, job='package-releases', registry=prometheus_registry)
         except Exception as e:
             _LOGGER.exception('An error occurred pushing the metrics: {}'.format(str(e)))
 

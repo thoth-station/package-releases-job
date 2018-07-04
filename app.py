@@ -34,7 +34,7 @@ from thoth.storages import GraphDatabase
 from thoth.storages import __version__ as thoth_storages_version
 
 
-__version__ = '0.2.0' + '+thoth_storage.' + thoth_storages_version
+__version__ = '0.3.0' + '+thoth_storage.' + thoth_storages_version
 
 
 init_logging()
@@ -44,7 +44,10 @@ PYPI_RSS_UPDATES = 'https://pypi.org/rss/updates.xml'
 PROMETHEUS_PUSH_GATEWAY = os.getenv('PROMETHEUS_PUSH_GATEWAY')
 
 prometheus_registry = CollectorRegistry()
-_METRIC_PACKAGES_NEW = Gauge('packages_added', 'Packages newly added', registry=prometheus_registry)
+_METRIC_PACKAGES_NEW_JUST_DISCOVERED = Gauge(
+    'packages_discovereded', 'Packages newly discovered', registry=prometheus_registry)
+_METRIC_PACKAGES_NEW_AND_ADDED = Gauge(
+    'packages_added', 'Packages newly added', registry=prometheus_registry)
 
 
 def _print_version(ctx, _, value):
@@ -137,9 +140,10 @@ def package_releases_update(monitored_packages: dict,
 
         if added:
             _LOGGER.info("Package %r in version %r was newly added", package_name, package_version)
-            _METRIC_PACKAGES_NEW.inc()
+            _METRIC_PACKAGES_NEW_AND_ADDED.inc()
         else:
             _LOGGER.info("Package %r in version %r was not added for tracking", package_name, package_version)
+            _METRIC_PACKAGES_NEW_JUST_DISCOVERED.inc()
 
         if monitored_packages:
             try:

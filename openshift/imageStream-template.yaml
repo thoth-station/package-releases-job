@@ -11,17 +11,19 @@ metadata:
     version: 0.2.0
     tags: poc,thoth,ai-stacks,package-releases
     template.openshift.io/documentation-url: https://github.com/Thoth-Station/
-    template.openshift.io/long-description: This template defines resources needed to deploy Thoth Package Releases ImageStream as a Proof-of-Concept to OpenShift.
+    template.openshift.io/long-description: >
+      This template defines resources needed to deploy Thoth Package Releases
+      ImageStream as a Proof-of-Concept to OpenShift.
     template.openshift.io/provider-display-name: Red Hat, Inc.
 
 objects:
-- kind: ImageStream
-  apiVersion: v1
-  metadata:
-    labels:
-      app: thoth-core
-    name: package-releases-job
-  spec:
-    name: latest
-    lookupPolicy:
-      local: true    
+  - kind: ImageStream
+    apiVersion: v1
+    metadata:
+      labels:
+        app: thoth-core
+      name: package-releases-job
+    spec:
+      name: latest
+      lookupPolicy:
+        local: true

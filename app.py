@@ -34,7 +34,7 @@ from thoth.storages import GraphDatabase
 from thoth.storages import __version__ as thoth_storages_version
 
 
-__version__ = '0.4.0' + '+thoth_storage.' + thoth_storages_version
+__version__ = '0.4.1' + '+thoth_storage.' + thoth_storages_version
 
 
 init_logging()
@@ -140,19 +140,20 @@ def package_releases_update(monitored_packages: dict,
                 only_if_package_seen=only_if_package_seen
             )
         except Exception as exc:
-            _LOGGER.exception("Failed to create entry in the graph database for %r in version %r: %s",
-                              package_name, package_version, str(exc))
+            _LOGGER.exception(
+                f"Failed to create entry in the graph database for {package_name} "
+                f"in version {package_version}: {str(exc)}")
             continue
 
         _METRIC_PACKAGES_NEW_JUST_DISCOVERED.inc()
 
         if added:
-            _LOGGER.info("Package %r in version %r was newly added",
-                         package_name, package_version)
+            _LOGGER.info(
+                f"Package {package_name} in version {package_version} was newly added")
             _METRIC_PACKAGES_NEW_AND_ADDED.inc()
         else:
-            _LOGGER.info("Package %r in version %r was not added for tracking",
-                         package_name, package_version)
+            _LOGGER.info(
+                f"Package {package_name} in version {package_version} was not added for tracking")
 
         if monitored_packages:
             try:
@@ -219,7 +220,7 @@ def cli(ctx=None, verbose=False, pypi_rss_feed=None, monitoring_config: str = No
                             job='package-releases', registry=prometheus_registry)
         except Exception as e:
             _LOGGER.exception(
-                'An error occurred pushing the metrics: {}'.format(str(e)))
+                f'An error occurred pushing the metrics: {str(e)}')
 
 
 if __name__ == '__main__':

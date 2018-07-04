@@ -34,7 +34,7 @@ from thoth.storages import GraphDatabase
 from thoth.storages import __version__ as thoth_storages_version
 
 
-__version__ = '0.3.0' + '+thoth_storage.' + thoth_storages_version
+__version__ = '0.4.1' + '+thoth_storage.' + thoth_storages_version
 
 
 init_logging()
@@ -48,6 +48,10 @@ _METRIC_PACKAGES_NEW_JUST_DISCOVERED = Gauge(
     'packages_discovereded', 'Packages newly discovered', registry=prometheus_registry)
 _METRIC_PACKAGES_NEW_AND_ADDED = Gauge(
     'packages_added', 'Packages newly added', registry=prometheus_registry)
+_METRIC_PACKAGES_NEW_AND_NOTIFIED = Gauge(
+    'packages_notified', 'Packages newly added and notification send', registry=prometheus_registry)
+_METRIC_PACKAGES_RELEASES_TIME = Gauge(
+    'package_releases_time', 'Runtime of package releases job', registry=prometheus_registry)
 
 
 def _print_version(ctx, _, value):
@@ -59,7 +63,7 @@ def _print_version(ctx, _, value):
     ctx.exit()
 
 
-def get_releases(pypi_rss_feed: str=None) -> list:
+def get_releases(pypi_rss_feed: str = None) -> list:
     """Get new PyPI releases from PyPI RSS feed. PyPI shows last 40 releases in its feed."""
     _LOGGER.info("Retrieving PyPI RSS feed from %r", pypi_rss_feed)
     response = requests.get(pypi_rss_feed or PYPI_RSS_UPDATES)
@@ -106,7 +110,8 @@ def release_notification(monitored_packages: dict, package_name: str) -> bool:
             )
             response.raise_for_status()
             was_triggered = True
-            _LOGGER.info(f"Successfully triggered release notification for {package_name} to {trigger['url']}")
+            _LOGGER.info(
+                f"Successfully triggered release notification for {package_name} to {trigger['url']}")
         except Exception as exc:
             _LOGGER.exception(f"Failed to trigger release notification for {package_name} for trigger {trigger}, "
                               f"error is not fatal: {str(exc)}")
@@ -115,8 +120,8 @@ def release_notification(monitored_packages: dict, package_name: str) -> bool:
 
 
 def package_releases_update(monitored_packages: dict,
-                            graph_hosts: str=None, graph_port: int=None, pypi_rss_feed: str=None,
-                            only_if_package_seen: bool=False) -> None:
+                            graph_hosts: str = None, graph_port: int = None, pypi_rss_feed: str = None,
+                            only_if_package_seen: bool = False) -> None:
     """Check for PyPI releases and create entries in the graph database if needed."""
     releases = get_releases(pypi_rss_feed=pypi_rss_feed)
 
@@ -124,7 +129,8 @@ def package_releases_update(monitored_packages: dict,
     adapter.connect()
 
     for package_name, package_version in releases:
-        _LOGGER.debug(f"Found release entry in RSS feed for package {package_name} in version {package_version}")
+        _LOGGER.debug(
+            f"Found release entry in RSS feed for package {package_name} in version {package_version}")
         # We just create an entry in the graph database and let the solver update job do its work. These packages will
         # be orphaned by default as there will be no connection to solver as no solver solved it's dependencies.
         try:
@@ -134,22 +140,29 @@ def package_releases_update(monitored_packages: dict,
                 only_if_package_seen=only_if_package_seen
             )
         except Exception as exc:
-            _LOGGER.exception("Failed to create entry in the graph database for %r in version %r: %s",
-                              package_name, package_version, str(exc))
+            _LOGGER.exception(
+                f"Failed to create entry in the graph database for {package_name} "
+                f"in version {package_version}: {str(exc)}")
             continue
 
+        _METRIC_PACKAGES_NEW_JUST_DISCOVERED.inc()
+
         if added:
-            _LOGGER.info("Package %r in version %r was newly added", package_name, package_version)
+            _LOGGER.info(
+                f"Package {package_name} in version {package_version} was newly added")
             _METRIC_PACKAGES_NEW_AND_ADDED.inc()
         else:
-            _LOGGER.info("Package %r in version %r was not added for tracking", package_name, package_version)
-            _METRIC_PACKAGES_NEW_JUST_DISCOVERED.inc()
+            _LOGGER.info(
+                f"Package {package_name} in version {package_version} was not added for tracking")
 
         if monitored_packages:
             try:
                 release_notification(monitored_packages, package_name)
+
+                _METRIC_PACKAGES_NEW_AND_NOTIFIED.inc()
             except Exception as exc:
-                _LOGGER.exception(f"Failed to do release notification, error is not fatal: {str(exc)}")
+                _LOGGER.exception(
+                    f"Failed to do release notification, error is not fatal: {str(exc)}")
 
 
 @click.command()
@@ -171,7 +184,7 @@ def package_releases_update(monitored_packages: dict,
               help="PyPI RSS feed to be used.")
 @click.option('--only-if-package-seen', is_flag=True, envvar='THOTH_PACKAGE_RELEASES_ONLY_IF_PACKAGE_SEEN',
               help="Create entries only for packages for which entries already exist in the graph database.")
-def cli(ctx=None, verbose=False, pypi_rss_feed=None, monitoring_config: str=None,
+def cli(ctx=None, verbose=False, pypi_rss_feed=None, monitoring_config: str = None,
         graph_hosts=None, graph_port=None, only_if_package_seen=False):
     """Check for updates in PyPI RSS feed and add missing entries to the graph database."""
     if ctx:
@@ -185,24 +198,29 @@ def cli(ctx=None, verbose=False, pypi_rss_feed=None, monitoring_config: str=None
     monitored_packages = None
     if monitoring_config:
         try:
-            monitored_packages = _load_package_monitoring_config(monitoring_config)
+            monitored_packages = _load_package_monitoring_config(
+                monitoring_config)
         except Exception:
-            _LOGGER.exception(f"Failed to load monitoring configuration from {monitoring_config}")
+            _LOGGER.exception(
+                f"Failed to load monitoring configuration from {monitoring_config}")
             raise
 
-    package_releases_update(
-        monitored_packages,
-        graph_hosts=graph_hosts,
-        graph_port=graph_port,
-        pypi_rss_feed=pypi_rss_feed,
-        only_if_package_seen=only_if_package_seen
-    )
+    with _METRIC_PACKAGES_RELEASES_TIME.time():
+        package_releases_update(
+            monitored_packages,
+            graph_hosts=graph_hosts,
+            graph_port=graph_port,
+            pypi_rss_feed=pypi_rss_feed,
+            only_if_package_seen=only_if_package_seen
+        )
 
     if PROMETHEUS_PUSH_GATEWAY:
         try:
-            push_to_gateway(PROMETHEUS_PUSH_GATEWAY, job='package-releases', registry=prometheus_registry)
+            push_to_gateway(PROMETHEUS_PUSH_GATEWAY,
+                            job='package-releases', registry=prometheus_registry)
         except Exception as e:
-            _LOGGER.exception('An error occurred pushing the metrics: {}'.format(str(e)))
+            _LOGGER.exception(
+                f'An error occurred pushing the metrics: {str(e)}')
 
 
 if __name__ == '__main__':

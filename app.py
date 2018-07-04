@@ -59,7 +59,7 @@ def _print_version(ctx, _, value):
     ctx.exit()
 
 
-def get_releases(pypi_rss_feed: str=None) -> list:
+def get_releases(pypi_rss_feed: str = None) -> list:
     """Get new PyPI releases from PyPI RSS feed. PyPI shows last 40 releases in its feed."""
     _LOGGER.info("Retrieving PyPI RSS feed from %r", pypi_rss_feed)
     response = requests.get(pypi_rss_feed or PYPI_RSS_UPDATES)
@@ -106,7 +106,8 @@ def release_notification(monitored_packages: dict, package_name: str) -> bool:
             )
             response.raise_for_status()
             was_triggered = True
-            _LOGGER.info(f"Successfully triggered release notification for {package_name} to {trigger['url']}")
+            _LOGGER.info(
+                f"Successfully triggered release notification for {package_name} to {trigger['url']}")
         except Exception as exc:
             _LOGGER.exception(f"Failed to trigger release notification for {package_name} for trigger {trigger}, "
                               f"error is not fatal: {str(exc)}")
@@ -115,8 +116,8 @@ def release_notification(monitored_packages: dict, package_name: str) -> bool:
 
 
 def package_releases_update(monitored_packages: dict,
-                            graph_hosts: str=None, graph_port: int=None, pypi_rss_feed: str=None,
-                            only_if_package_seen: bool=False) -> None:
+                            graph_hosts: str = None, graph_port: int = None, pypi_rss_feed: str = None,
+                            only_if_package_seen: bool = False) -> None:
     """Check for PyPI releases and create entries in the graph database if needed."""
     releases = get_releases(pypi_rss_feed=pypi_rss_feed)
 
@@ -124,7 +125,8 @@ def package_releases_update(monitored_packages: dict,
     adapter.connect()
 
     for package_name, package_version in releases:
-        _LOGGER.debug(f"Found release entry in RSS feed for package {package_name} in version {package_version}")
+        _LOGGER.debug(
+            f"Found release entry in RSS feed for package {package_name} in version {package_version}")
         # We just create an entry in the graph database and let the solver update job do its work. These packages will
         # be orphaned by default as there will be no connection to solver as no solver solved it's dependencies.
         try:
@@ -139,17 +141,20 @@ def package_releases_update(monitored_packages: dict,
             continue
 
         if added:
-            _LOGGER.info("Package %r in version %r was newly added", package_name, package_version)
+            _LOGGER.info("Package %r in version %r was newly added",
+                         package_name, package_version)
             _METRIC_PACKAGES_NEW_AND_ADDED.inc()
         else:
-            _LOGGER.info("Package %r in version %r was not added for tracking", package_name, package_version)
+            _LOGGER.info("Package %r in version %r was not added for tracking",
+                         package_name, package_version)
             _METRIC_PACKAGES_NEW_JUST_DISCOVERED.inc()
 
         if monitored_packages:
             try:
                 release_notification(monitored_packages, package_name)
             except Exception as exc:
-                _LOGGER.exception(f"Failed to do release notification, error is not fatal: {str(exc)}")
+                _LOGGER.exception(
+                    f"Failed to do release notification, error is not fatal: {str(exc)}")
 
 
 @click.command()
@@ -171,7 +176,7 @@ def package_releases_update(monitored_packages: dict,
               help="PyPI RSS feed to be used.")
 @click.option('--only-if-package-seen', is_flag=True, envvar='THOTH_PACKAGE_RELEASES_ONLY_IF_PACKAGE_SEEN',
               help="Create entries only for packages for which entries already exist in the graph database.")
-def cli(ctx=None, verbose=False, pypi_rss_feed=None, monitoring_config: str=None,
+def cli(ctx=None, verbose=False, pypi_rss_feed=None, monitoring_config: str = None,
         graph_hosts=None, graph_port=None, only_if_package_seen=False):
     """Check for updates in PyPI RSS feed and add missing entries to the graph database."""
     if ctx:
@@ -185,9 +190,11 @@ def cli(ctx=None, verbose=False, pypi_rss_feed=None, monitoring_config: str=None
     monitored_packages = None
     if monitoring_config:
         try:
-            monitored_packages = _load_package_monitoring_config(monitoring_config)
+            monitored_packages = _load_package_monitoring_config(
+                monitoring_config)
         except Exception:
-            _LOGGER.exception(f"Failed to load monitoring configuration from {monitoring_config}")
+            _LOGGER.exception(
+                f"Failed to load monitoring configuration from {monitoring_config}")
             raise
 
     package_releases_update(
@@ -200,9 +207,11 @@ def cli(ctx=None, verbose=False, pypi_rss_feed=None, monitoring_config: str=None
 
     if PROMETHEUS_PUSH_GATEWAY:
         try:
-            push_to_gateway(PROMETHEUS_PUSH_GATEWAY, job='package-releases', registry=prometheus_registry)
+            push_to_gateway(PROMETHEUS_PUSH_GATEWAY,
+                            job='package-releases', registry=prometheus_registry)
         except Exception as e:
-            _LOGGER.exception('An error occurred pushing the metrics: {}'.format(str(e)))
+            _LOGGER.exception(
+                'An error occurred pushing the metrics: {}'.format(str(e)))
 
 
 if __name__ == '__main__':

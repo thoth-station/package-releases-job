@@ -1,6 +1,7 @@
 [all]
 bears = LineCountBear, FilenameBear
-files = **.py, **.yml, **.yaml, **.rst
+files = **.py, **.yaml, **.rst
+file_naming_convention = camel
 ignore = **/__pycache__/**, **/__pycache__, __pycache__, __pycache__/**, **/*.pyc, *.pyc
 max_lines_per_file = 1000
 
@@ -15,4 +16,4 @@ ignore = setup.py
 [all.yaml]
 bears = YAMLLintBear
 ignore = .travis.yml
-files = **.yml, **.yaml
+files = **.yaml

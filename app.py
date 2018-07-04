@@ -34,7 +34,7 @@ from thoth.storages import GraphDatabase
 from thoth.storages import __version__ as thoth_storages_version
 
 
-__version__ = '0.3.0' + '+thoth_storage.' + thoth_storages_version
+__version__ = '0.4.0' + '+thoth_storage.' + thoth_storages_version
 
 
 init_logging()
@@ -48,6 +48,10 @@ _METRIC_PACKAGES_NEW_JUST_DISCOVERED = Gauge(
     'packages_discovereded', 'Packages newly discovered', registry=prometheus_registry)
 _METRIC_PACKAGES_NEW_AND_ADDED = Gauge(
     'packages_added', 'Packages newly added', registry=prometheus_registry)
+_METRIC_PACKAGES_NEW_AND_NOTIFIED = Gauge(
+    'packages_notified', 'Packages newly added and notification send', registry=prometheus_registry)
+_METRIC_PACKAGES_RELEASES_TIME = Gauge(
+    'package_releases_time', 'Runtime of package releases job', registry=prometheus_registry)
 
 
 def _print_version(ctx, _, value):
@@ -140,6 +144,8 @@ def package_releases_update(monitored_packages: dict,
                               package_name, package_version, str(exc))
             continue
 
+        _METRIC_PACKAGES_NEW_JUST_DISCOVERED.inc()
+
         if added:
             _LOGGER.info("Package %r in version %r was newly added",
                          package_name, package_version)
@@ -147,11 +153,12 @@ def package_releases_update(monitored_packages: dict,
         else:
             _LOGGER.info("Package %r in version %r was not added for tracking",
                          package_name, package_version)
-            _METRIC_PACKAGES_NEW_JUST_DISCOVERED.inc()
 
         if monitored_packages:
             try:
                 release_notification(monitored_packages, package_name)
+
+                _METRIC_PACKAGES_NEW_AND_NOTIFIED.inc()
             except Exception as exc:
                 _LOGGER.exception(
                     f"Failed to do release notification, error is not fatal: {str(exc)}")
@@ -197,13 +204,14 @@ def cli(ctx=None, verbose=False, pypi_rss_feed=None, monitoring_config: str = No
                 f"Failed to load monitoring configuration from {monitoring_config}")
             raise
 
-    package_releases_update(
-        monitored_packages,
-        graph_hosts=graph_hosts,
-        graph_port=graph_port,
-        pypi_rss_feed=pypi_rss_feed,
-        only_if_package_seen=only_if_package_seen
-    )
+    with _METRIC_PACKAGES_RELEASES_TIME.time():
+        package_releases_update(
+            monitored_packages,
+            graph_hosts=graph_hosts,
+            graph_port=graph_port,
+            pypi_rss_feed=pypi_rss_feed,
+            only_if_package_seen=only_if_package_seen
+        )
 
     if PROMETHEUS_PUSH_GATEWAY:
         try:

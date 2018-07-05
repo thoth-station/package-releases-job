@@ -217,7 +217,8 @@ def cli(ctx=None, verbose=False, pypi_rss_feed=None, monitoring_config: str = No
 
     if push_gateway_host:
         try:
-            push_to_gateway(f"{push_gateway_host:push_gateway_port}", job='package-releases', registry=prometheus_registry)
+            push_to_gateway(f"{push_gateway_host:push_gateway_port}", 
+                            job='package-releases', registry=prometheus_registry)
         except Exception as e:
             _LOGGER.exception(
                 f'An error occurred pushing the metrics: {str(e)}')

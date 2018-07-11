@@ -217,7 +217,7 @@ def cli(ctx=None, verbose=False, pypi_rss_feed=None, monitoring_config: str = No
 
     if _PUSH_GATEWAY_HOST and _PUSH_GATEWAY_PORT:
         try:
-            push_to_gateway(f"{push_gateway_host:push_gateway_port}",
+            push_to_gateway(f"{_PUSH_GATEWAY_HOST:_PUSH_GATEWAY_PORT}",
                             job='package-releases',
                             registry=prometheus_registry)
         except Exception as e:

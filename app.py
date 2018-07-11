@@ -41,8 +41,8 @@ init_logging()
 
 _LOGGER = logging.getLogger('thoth.package_releases')
 PYPI_RSS_UPDATES = 'https://pypi.org/rss/updates.xml'
-push_gateway_host = os.getenv('PROMETHEUS_PUSHGATEWAY_HOST')
-push_gateway_port = os.getenv('PROMETHEUS_PUSHGATEWAY_PORT')
+_PUSH_GATEWAY_HOST = os.getenv('PROMETHEUS_PUSHGATEWAY_HOST')
+_PUSH_GATEWAY_PORT = os.getenv('PROMETHEUS_PUSHGATEWAY_PORT')
 
 prometheus_registry = CollectorRegistry()
 _METRIC_PACKAGES_NEW_JUST_DISCOVERED = Gauge(
@@ -215,7 +215,7 @@ def cli(ctx=None, verbose=False, pypi_rss_feed=None, monitoring_config: str = No
             only_if_package_seen=only_if_package_seen
         )
 
-    if push_gateway_host:
+    if _PUSH_GATEWAY_HOST and _PUSH_GATEWAY_PORT:
         try:
             push_to_gateway(f"{push_gateway_host:push_gateway_port}",
                             job='package-releases',

@@ -159,7 +159,6 @@ def package_releases_update(monitored_packages: dict,
         if monitored_packages:
             try:
                 release_notification(monitored_packages, package_name)
-
                 _METRIC_PACKAGES_NEW_AND_NOTIFIED.inc()
             except Exception as exc:
                 _LOGGER.exception(
@@ -217,9 +216,9 @@ def cli(ctx=None, verbose=False, pypi_rss_feed=None, monitoring_config: str = No
 
     if _PUSH_GATEWAY_HOST and _PUSH_GATEWAY_PORT:
         try:
-            push_to_gateway(f"{_PUSH_GATEWAY_HOST:_PUSH_GATEWAY_PORT}",
-                            job='package-releases',
-                            registry=prometheus_registry)
+            push_gateway = f"{_PUSH_GATEWAY_HOST:_PUSH_GATEWAY_PORT}"
+            _LOGGER.debug(f"Submitting metrics to Prometheus push gateway {push_gateway}")
+            push_to_gateway(push_gateway, job='package-releases', registry=prometheus_registry)
         except Exception as e:
             _LOGGER.exception(
                 f'An error occurred pushing the metrics: {str(e)}')

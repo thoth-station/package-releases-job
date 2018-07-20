@@ -25,7 +25,7 @@ objects:
         app: thoth-core
     spec:
       schedule: '*/6 * * * *'
-      suspend: true
+      suspend: ${THOTH_SUSPEND_JOB}
       concurrencyPolicy: Forbid
       successfulJobsHistoryLimit: 4
       startingDeadlineSeconds: 99
@@ -75,3 +75,11 @@ objects:
                       memory: "512Mi"
                       cpu: "250m"
               restartPolicy: OnFailure
+
+parameters:
+  - displayName: Suspend CronJob run
+    description: Suspend CronJob run
+    required: true
+    name: THOTH_SUSPEND_JOB
+    value: true
+

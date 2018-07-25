@@ -27,7 +27,7 @@ objects:
         component: package-releases
     spec:
       schedule: '*/6 * * * *'
-      suspend: "${THOTH_SUSPEND_JOB}"
+      suspend: ${{THOTH_SUSPEND_JOB}}
       concurrencyPolicy: Forbid
       successfulJobsHistoryLimit: 4
       startingDeadlineSeconds: 99

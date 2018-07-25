@@ -83,4 +83,4 @@ parameters:
     description: Suspend CronJob run
     required: true
     name: THOTH_SUSPEND_JOB
-    value: true
+    value: "true"

@@ -35,6 +35,9 @@ objects:
       jobTemplate:
         spec:
           template:
+            labels:
+              app: thoth
+              component: package-releases
             spec:
               containers:
                 - image: package-releases-job

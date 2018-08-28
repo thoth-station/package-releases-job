@@ -99,20 +99,21 @@ def _load_package_monitoring_config(config_path: str) -> typing.Optional[dict]:
     return yaml.load(content)
 
 
-def release_notification(monitored_packages: dict, package_name: str) -> bool:
+def release_notification(monitored_packages: dict, package_name: str, package_version: str) -> bool:
     """Check for release notification in monitoring configuration and trigger notification if requested."""
     was_triggered = False
     for trigger in monitored_packages.get(package_name, {}).get('triggers') or []:
-        _LOGGER.debug(f"Triggering release notification for {package_name}")
+        _LOGGER.debug(f"Triggering release notification for {package_name} for version {package_version}")
         try:
+            # We expand URL based on environment variables, package name and package version so a user can fully
+            # configure what should be present in the URL.
             response = requests.post(
-                trigger['url'].format(**os.environ),
+                trigger['url'].format(**os.environ, package_name=package_name, package_version=package_version),
                 verify=trigger.get('tls_verify', True)
             )
             response.raise_for_status()
             was_triggered = True
-            _LOGGER.info(
-                f"Successfully triggered release notification for {package_name} to {trigger['url']}")
+            _LOGGER.info(f"Successfully triggered release notification for {package_name} to {trigger['url']}")
         except Exception as exc:
             _LOGGER.exception(f"Failed to trigger release notification for {package_name} for trigger {trigger}, "
                               f"error is not fatal: {str(exc)}")
@@ -149,8 +150,7 @@ def package_releases_update(monitored_packages: dict,
         _METRIC_PACKAGES_NEW_JUST_DISCOVERED.inc()
 
         if added:
-            _LOGGER.info(
-                f"Package {package_name} in version {package_version} was newly added")
+            _LOGGER.info(f"Package {package_name} in version {package_version} was newly added")
             _METRIC_PACKAGES_NEW_AND_ADDED.inc()
         else:
             _LOGGER.info(
@@ -158,7 +158,7 @@ def package_releases_update(monitored_packages: dict,
 
         if added and monitored_packages:
             try:
-                release_notification(monitored_packages, package_name)
+                release_notification(monitored_packages, package_name, package_version)
                 _METRIC_PACKAGES_NEW_AND_NOTIFIED.inc()
             except Exception as exc:
                 _LOGGER.exception(

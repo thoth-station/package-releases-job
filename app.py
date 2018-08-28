@@ -156,7 +156,7 @@ def package_releases_update(monitored_packages: dict,
             _LOGGER.info(
                 f"Package {package_name} in version {package_version} was not added for tracking")
 
-        if monitored_packages:
+        if added and monitored_packages:
             try:
                 release_notification(monitored_packages, package_name)
                 _METRIC_PACKAGES_NEW_AND_NOTIFIED.inc()

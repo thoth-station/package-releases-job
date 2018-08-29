@@ -9,7 +9,9 @@
       jobs:
         - trigger-build:
             vars:
-              webhook_url: "https://paas.upshift.redhat.com/oapi/v1/namespaces/thoth-test-core/buildconfigs/package-releases-job/webhooks/"
+              webhook_url: "https://paas.upshift.redhat.com/oapi/v1/\
+                            namespaces/thoth-test-core/buildconfigs/\
+                            package-releases-job/webhooks/"
     kebechet-auto-gate:
       jobs:
         - linters

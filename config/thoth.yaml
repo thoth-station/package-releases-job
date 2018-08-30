@@ -1,9 +1,5 @@
 ---
 tensorflow:
   triggers:
-    - url: "{TENSORFLOW_BUILD_WEBHOOK}"
-      tls_verify: false
-kebechet:
-  triggers:
-    - url: "{KEBECHET_BUILD_WEBHOOK}"
+    - url: "{TENSORFLOW_RELEASE_API}/tensorflow/release/{package_version}"
       tls_verify: false

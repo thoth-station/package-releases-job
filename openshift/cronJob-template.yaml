@@ -5,8 +5,8 @@ metadata:
   annotations:
     description: This is Thoth Core - Package Releases Job
     openshift.io/display-name: "Thoth: Package Releases Job"
-    version: 0.2.0
-    tags: poc,thoth,ai-stacks,package-releases
+    version: 0.3.0
+    tags: poc,thoth,ai-stacks,aistacks,package-releases
     template.openshift.io/documentation-url: https://github.com/Thoth-Station/
     template.openshift.io/long-description: >
       This template defines resources needed to deploy Thoth Package
@@ -16,6 +16,13 @@ metadata:
     template: package-releases-cronjob
     app: thoth
     component: package-releases
+
+parameters:
+  - displayName: Suspend CronJob run
+    description: Suspend CronJob run
+    required: true
+    name: THOTH_SUSPEND_JOB
+    value: "true"
 
 objects:
   - kind: CronJob
@@ -43,10 +50,6 @@ objects:
                 - image: package-releases-job
                   name: package-releases
                   env:
-                    - name: THOTH_JANUSGRAPH_HOST
-                      value: 'janusgraph'
-                    - name: THOTH_JANUSGRAPH_PORT
-                      value: '80'
                     - name: THOTH_PACKAGE_RELEASES_ONLY_IF_PACKAGE_SEEN
                       valueFrom:
                         configMapKeyRef:
@@ -72,6 +75,11 @@ objects:
                         configMapKeyRef:
                           key: prometheus-pushgateway-port
                           name: thoth
+                    - name: SENTRY_DSN
+                      valueFrom:
+                        secretKeyRef:
+                          name: thoth
+                          key: sentry-dsn
                   resources:
                     requests:
                       memory: "128Mi"
@@ -80,10 +88,3 @@ objects:
                       memory: "512Mi"
                       cpu: "250m"
               restartPolicy: OnFailure
-
-parameters:
-  - displayName: Suspend CronJob run
-    description: Suspend CronJob run
-    required: true
-    name: THOTH_SUSPEND_JOB
-    value: "true"

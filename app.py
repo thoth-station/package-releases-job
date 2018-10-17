@@ -114,10 +114,11 @@ def release_notification(monitored_packages: dict, package_name: str, package_ve
             response.raise_for_status()
             was_triggered = True
             _LOGGER.info(
-                f"Successfully triggered release notification for {package_name} ({package_version}) to {trigger['url']}")
+                f"Successfully triggered release notification for {package_name} "
+                f"({package_version}) to {trigger['url']}")
         except Exception as exc:
-            _LOGGER.exception(f"Failed to trigger release notification for {package_name} ({package_version}) for trigger {trigger}, "
-                              f"error is not fatal: {str(exc)}")
+            _LOGGER.exception(f"Failed to trigger release notification for {package_name} "
+                              f"({package_version}) for trigger {trigger}, error is not fatal: {str(exc)}")
 
     return was_triggered
 
@@ -163,7 +164,8 @@ def package_releases_update(monitored_packages: dict,
                 _METRIC_PACKAGES_NEW_AND_NOTIFIED.inc()
             except Exception as exc:
                 _LOGGER.exception(
-                    f"Failed to do release notification for {package_name} ({package_version}), error is not fatal: {str(exc)}")
+                    f"Failed to do release notification for {package_name} ({package_version}), "
+                    f"error is not fatal: {str(exc)}")
 
 
 @click.command()

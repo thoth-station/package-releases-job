@@ -133,8 +133,7 @@ def package_releases_update(monitored_packages: dict,
     adapter.connect()
 
     for package_name, package_version in releases:
-        _LOGGER.debug(
-            f"Found release entry in RSS feed for package {package_name} ({package_version})")
+        _LOGGER.debug(f"Found release entry in RSS feed for package {package_name} ({package_version})")
         # We just create an entry in the graph database and let the solver update job do its work. These packages will
         # be orphaned by default as there will be no connection to solver as no solver solved it's dependencies.
         try:
@@ -145,8 +144,8 @@ def package_releases_update(monitored_packages: dict,
             )
         except Exception as exc:
             _LOGGER.exception(
-                f"Failed to create entry in the graph database for {package_name} ({package_version})"
-                f": {str(exc)}")
+                f"Failed to create entry in the graph database for {package_name} ({package_version}): {str(exc)}"
+            )
             continue
 
         _METRIC_PACKAGES_NEW_JUST_DISCOVERED.inc()
@@ -205,27 +204,26 @@ def cli(ctx=None, verbose=False, pypi_rss_feed=None, monitoring_config: str = No
             monitored_packages = _load_package_monitoring_config(
                 monitoring_config)
         except Exception:
-            _LOGGER.exception(
-                f"Failed to load monitoring configuration from {monitoring_config}")
+            _LOGGER.exception(f"Failed to load monitoring configuration from {monitoring_config}")
             raise
 
-    with _METRIC_PACKAGES_RELEASES_TIME.time():
-        package_releases_update(
-            monitored_packages,
-            graph_hosts=graph_hosts,
-            graph_port=graph_port,
-            pypi_rss_feed=pypi_rss_feed,
-            only_if_package_seen=only_if_package_seen
-        )
-
-    if _PUSH_GATEWAY_HOST and _PUSH_GATEWAY_PORT:
-        try:
-            push_gateway = f"{_PUSH_GATEWAY_HOST}:{_PUSH_GATEWAY_PORT}"
-            _LOGGER.debug(f"Submitting metrics to Prometheus push gateway {push_gateway}")
-            push_to_gateway(push_gateway, job='package-releases', registry=prometheus_registry)
-        except Exception as e:
-            _LOGGER.exception(
-                f'An error occurred pushing the metrics: {str(e)}')
+    try:
+        with _METRIC_PACKAGES_RELEASES_TIME.time():
+            package_releases_update(
+                monitored_packages,
+                graph_hosts=graph_hosts,
+                graph_port=graph_port,
+                pypi_rss_feed=pypi_rss_feed,
+                only_if_package_seen=only_if_package_seen
+            )
+    finally:
+        if _PUSH_GATEWAY_HOST and _PUSH_GATEWAY_PORT:
+            try:
+                push_gateway = f"{_PUSH_GATEWAY_HOST}:{_PUSH_GATEWAY_PORT}"
+                _LOGGER.info(f"Submitting metrics to Prometheus push gateway {push_gateway}")
+                push_to_gateway(push_gateway, job='package-releases', registry=prometheus_registry)
+            except Exception as e:
+                _LOGGER.exception(f'An error occurred pushing the metrics: {str(e)}')
 
 
 if __name__ == '__main__':

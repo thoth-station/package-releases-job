@@ -1,10 +1,10 @@
 - project:
     check:
       jobs:
-        - linters
+        - thoth-coala
     gate:
       jobs:
-        - linters
+        - thoth-coala
     post:
       jobs:
         - trigger-build:
@@ -12,4 +12,4 @@
               webhook_url: https://paas.upshift.redhat.com/oapi/v1/namespaces/thoth-test-core/buildconfigs/package-releases-job/webhooks
     kebechet-auto-gate:
       jobs:
-        - linters
+        - thoth-coala

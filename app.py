@@ -34,7 +34,8 @@ from thoth.storages import GraphDatabase
 from thoth.storages import __version__ as thoth_storages_version
 
 
-__version__ = '0.4.1' + '+thoth_storage.' + thoth_storages_version
+# Reuse thoth-storages version as we rely on it.
+__version__ = '0.5.0' + '+thoth_storage.' + thoth_storages_version
 
 
 init_logging()
@@ -59,7 +60,6 @@ def _print_version(ctx, _, value):
     """Print package releases version and exit."""
     if not value or ctx.resilient_parsing:
         return
-    # Reuse thoth-storages version as we rely on it.
     click.echo(__version__)
     ctx.exit()
 
@@ -103,7 +103,7 @@ def release_notification(monitored_packages: dict, package_name: str, package_ve
     """Check for release notification in monitoring configuration and trigger notification if requested."""
     was_triggered = False
     for trigger in monitored_packages.get(package_name, {}).get('triggers') or []:
-        _LOGGER.debug(f"Triggering release notification for {package_name} for version {package_version}")
+        _LOGGER.debug(f"Triggering release notification for {package_name} ({package_version})")
         try:
             # We expand URL based on environment variables, package name and package version so a user can fully
             # configure what should be present in the URL.
@@ -113,10 +113,12 @@ def release_notification(monitored_packages: dict, package_name: str, package_ve
             )
             response.raise_for_status()
             was_triggered = True
-            _LOGGER.info(f"Successfully triggered release notification for {package_name} to {trigger['url']}")
+            _LOGGER.info(
+                f"Successfully triggered release notification for {package_name} "
+                f"({package_version}) to {trigger['url']}")
         except Exception as exc:
-            _LOGGER.exception(f"Failed to trigger release notification for {package_name} for trigger {trigger}, "
-                              f"error is not fatal: {str(exc)}")
+            _LOGGER.exception(f"Failed to trigger release notification for {package_name} "
+                              f"({package_version}) for trigger {trigger}, error is not fatal: {str(exc)}")
 
     return was_triggered
 
@@ -132,7 +134,7 @@ def package_releases_update(monitored_packages: dict,
 
     for package_name, package_version in releases:
         _LOGGER.debug(
-            f"Found release entry in RSS feed for package {package_name} in version {package_version}")
+            f"Found release entry in RSS feed for package {package_name} ({package_version})")
         # We just create an entry in the graph database and let the solver update job do its work. These packages will
         # be orphaned by default as there will be no connection to solver as no solver solved it's dependencies.
         try:
@@ -143,18 +145,18 @@ def package_releases_update(monitored_packages: dict,
             )
         except Exception as exc:
             _LOGGER.exception(
-                f"Failed to create entry in the graph database for {package_name} "
-                f"in version {package_version}: {str(exc)}")
+                f"Failed to create entry in the graph database for {package_name} ({package_version})"
+                f": {str(exc)}")
             continue
 
         _METRIC_PACKAGES_NEW_JUST_DISCOVERED.inc()
 
         if added:
-            _LOGGER.info(f"Package {package_name} in version {package_version} was newly added")
+            _LOGGER.info(f"Package {package_name} ({package_version}) was added to the graph database")
             _METRIC_PACKAGES_NEW_AND_ADDED.inc()
         else:
             _LOGGER.info(
-                f"Package {package_name} in version {package_version} was not added for tracking")
+                f"Package {package_name} ({package_version}) was not added to the graph database")
 
         if added and monitored_packages:
             try:
@@ -162,7 +164,8 @@ def package_releases_update(monitored_packages: dict,
                 _METRIC_PACKAGES_NEW_AND_NOTIFIED.inc()
             except Exception as exc:
                 _LOGGER.exception(
-                    f"Failed to do release notification, error is not fatal: {str(exc)}")
+                    f"Failed to do release notification for {package_name} ({package_version}), "
+                    f"error is not fatal: {str(exc)}")
 
 
 @click.command()

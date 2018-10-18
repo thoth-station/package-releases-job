@@ -35,7 +35,7 @@ from thoth.storages import __version__ as thoth_storages_version
 
 
 # Reuse thoth-storages version as we rely on it.
-__version__ = '0.5.0' + '+thoth_storage.' + thoth_storages_version
+__version__ = '0.6.0' + '+thoth_storage.' + thoth_storages_version
 
 
 init_logging()
@@ -196,6 +196,7 @@ def cli(ctx=None, verbose=False, pypi_rss_feed=None, monitoring_config: str = No
         _LOGGER.setLevel(logging.DEBUG)
 
     _LOGGER.debug("Debug mode turned on")
+    _LOGGER.info(f"Package releases version: {__version__}")
 
     monitored_packages = None
     if monitoring_config:

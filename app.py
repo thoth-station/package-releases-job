@@ -140,6 +140,7 @@ def package_releases_update(monitored_packages: dict,
             added = adapter.create_pypi_package_version(
                 package_name,
                 package_version,
+                'https://pypi.org/simple',
                 only_if_package_seen=only_if_package_seen
             )
         except Exception as exc:

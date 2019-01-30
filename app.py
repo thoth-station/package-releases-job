@@ -123,13 +123,12 @@ def release_notification(monitored_packages: dict, package_name: str, package_ve
     return was_triggered
 
 
-def package_releases_update(monitored_packages: dict,
-                            graph_hosts: str = None, graph_port: int = None, pypi_rss_feed: str = None,
+def package_releases_update(monitored_packages: dict, pypi_rss_feed: str = None,
                             only_if_package_seen: bool = False) -> None:
     """Check for PyPI releases and create entries in the graph database if needed."""
     releases = get_releases(pypi_rss_feed=pypi_rss_feed)
 
-    adapter = GraphDatabase(hosts=graph_hosts, port=graph_port)
+    adapter = GraphDatabase()
     adapter.connect()
 
     for package_name, package_version in releases:
@@ -174,12 +173,6 @@ def package_releases_update(monitored_packages: dict,
               help="Be verbose about what's going on.")
 @click.option('--version', is_flag=True, is_eager=True, callback=_print_version, expose_value=False,
               help="Print version and exit.")
-@click.option('--graph-hosts', type=str, metavar=GraphDatabase.ENVVAR_HOST_NAME,
-              envvar=GraphDatabase.ENVVAR_HOST_NAME, multiple=True,
-              help="Hostname to the graph instance to perform queries for unknown packages.")
-@click.option('--graph-port', type=int, metavar='PORT',
-              envvar=GraphDatabase.ENVVAR_HOST_PORT,
-              help="Port number to the graph instance to perform queries for unknown packages.")
 @click.option('--pypi-rss-feed', '-r', type=str, default=PYPI_RSS_UPDATES, show_default=True, metavar='URL',
               help="PyPI RSS feed to be used.")
 @click.option('--monitoring-config', '-m', type=str, show_default=True, metavar='CONFIG',
@@ -187,8 +180,7 @@ def package_releases_update(monitored_packages: dict,
               help="PyPI RSS feed to be used.")
 @click.option('--only-if-package-seen', is_flag=True, envvar='THOTH_PACKAGE_RELEASES_ONLY_IF_PACKAGE_SEEN',
               help="Create entries only for packages for which entries already exist in the graph database.")
-def cli(ctx=None, verbose=False, pypi_rss_feed=None, monitoring_config: str = None,
-        graph_hosts=None, graph_port=None, only_if_package_seen=False):
+def cli(ctx=None, verbose=False, pypi_rss_feed=None, monitoring_config: str = None, only_if_package_seen=False):
     """Check for updates in PyPI RSS feed and add missing entries to the graph database."""
     if ctx:
         ctx.auto_envvar_prefix = 'THOTH_PACKAGE_RELEASES'
@@ -212,8 +204,6 @@ def cli(ctx=None, verbose=False, pypi_rss_feed=None, monitoring_config: str = No
         with _METRIC_PACKAGES_RELEASES_TIME.time():
             package_releases_update(
                 monitored_packages,
-                graph_hosts=graph_hosts,
-                graph_port=graph_port,
                 pypi_rss_feed=pypi_rss_feed,
                 only_if_package_seen=only_if_package_seen
             )

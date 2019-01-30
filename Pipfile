@@ -10,6 +10,7 @@ thoth-common = "*"
 requests = "*"
 prometheus-client = "*"
 pyyaml = "==3.12"
+thoth-python = "*"
 
 [dev-packages]
 coala = "*"

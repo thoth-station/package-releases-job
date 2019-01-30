@@ -126,12 +126,20 @@ def package_releases_update(
     *,
     graph: GraphDatabase,
     only_if_package_seen: bool = False,
-):
+) -> None:
     """Check for updates of packages, notify about updates if configured so."""
     sources = [Source(**config) for config in graph.python_package_index_listing()]
 
     for package_index in sources:
-        for package_name in package_index.get_packages():
+        if only_if_package_seen:
+            # An optimization - we don't need to iterate over a large set present on index.
+            # Check only packages known to Thoth.
+            package_names = graph.get_python_packages_for_index(package_index.url)
+        else:
+            # Check all the packages present on index and eventually register them in Thoth.
+            package_names = package_index.get_packages()
+
+        for package_name in package_names:
             try:
                 package_versions = package_index.get_package_versions(package_name)
             except NotFound as exc:

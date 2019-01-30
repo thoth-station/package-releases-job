@@ -116,7 +116,15 @@ def package_releases_update(monitored_packages: dict, *, graph: GraphDatabase, o
                     only_if_package_seen=only_if_package_seen
                 )
 
-                if added:
+                if added is None:
+                    _LOGGER.info(
+                        "Package %r in version %r hosted on %r was not added - it was not previously seen",
+                        package_name, package_version, package_index.url
+                    )
+                    continue
+
+                existed = added[0]
+                if not existed:
                     _LOGGER.info(
                         "New release of package %r in version %r hosted on %r added",
                         package_name, package_version, package_index.url
@@ -124,7 +132,7 @@ def package_releases_update(monitored_packages: dict, *, graph: GraphDatabase, o
                     _METRIC_PACKAGES_NEW_AND_ADDED.inc()
                 else:
                     _LOGGER.debug(
-                        "Not added release of %r in version %r hosted on %r",
+                        "Release of %r in version %r hosted on %r already present",
                         package_name, package_version, package_index.url
                     )
 

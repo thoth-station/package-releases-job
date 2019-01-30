@@ -29,6 +29,7 @@ from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 
 from thoth.common import init_logging
 from thoth.python import Source
+from thoth.python.exceptions import NotFound
 from thoth.storages import GraphDatabase
 from thoth.storages import __version__ as thoth_storages_version
 
@@ -133,6 +134,9 @@ def package_releases_update(
         for package_name in package_index.get_packages():
             try:
                 package_versions = package_index.get_package_versions(package_name)
+            except NotFound as exc:
+                _LOGGER.warning("No versions found for package %r: %s", package_name, str(exc))
+                continue
             except Exception as exc:
                 _LOGGER.exception("Failed to retrieve package versions for %r: %s", package_name, str(exc))
                 continue

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 # thoth-package-releases-job
 # Copyright(C) 2018 Fridolin Pokorny
 #
@@ -20,7 +19,6 @@
 
 import logging
 import typing
-from xml.etree import ElementTree
 
 import os
 import requests
@@ -30,6 +28,7 @@ import click
 from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 
 from thoth.common import init_logging
+from thoth.python import Source
 from thoth.storages import GraphDatabase
 from thoth.storages import __version__ as thoth_storages_version
 
@@ -41,13 +40,10 @@ __version__ = '0.6.0' + '+thoth_storage.' + thoth_storages_version
 init_logging()
 
 _LOGGER = logging.getLogger('thoth.package_releases')
-PYPI_RSS_UPDATES = 'https://pypi.org/rss/updates.xml'
 _PUSH_GATEWAY_HOST = os.getenv('PROMETHEUS_PUSHGATEWAY_HOST')
 _PUSH_GATEWAY_PORT = os.getenv('PROMETHEUS_PUSHGATEWAY_PORT')
 
 prometheus_registry = CollectorRegistry()
-_METRIC_PACKAGES_NEW_JUST_DISCOVERED = Gauge(
-    'packages_discovereded', 'Packages newly discovered', registry=prometheus_registry)
 _METRIC_PACKAGES_NEW_AND_ADDED = Gauge(
     'packages_added', 'Packages newly added', registry=prometheus_registry)
 _METRIC_PACKAGES_NEW_AND_NOTIFIED = Gauge(
@@ -62,23 +58,6 @@ def _print_version(ctx, _, value):
         return
     click.echo(__version__)
     ctx.exit()
-
-
-def get_releases(pypi_rss_feed: str = None) -> list:
-    """Get new PyPI releases from PyPI RSS feed. PyPI shows last 40 releases in its feed."""
-    _LOGGER.info("Retrieving PyPI RSS feed from %r", pypi_rss_feed)
-    response = requests.get(pypi_rss_feed or PYPI_RSS_UPDATES)
-    response.raise_for_status()
-
-    tree = ElementTree.fromstring(response.text)
-    result = []
-    for child in tree.findall('.//channel/item'):
-        for item in child.findall('.//link'):
-            link = item.text[:-1] if item.text.endswith('/') else item.text
-            package_name, package_version = link.rsplit('/', maxsplit=2)[-2:]
-            result.append((package_name, package_version))
-
-    return result
 
 
 def _load_package_monitoring_config(config_path: str) -> typing.Optional[dict]:
@@ -123,48 +102,40 @@ def release_notification(monitored_packages: dict, package_name: str, package_ve
     return was_triggered
 
 
-def package_releases_update(monitored_packages: dict, pypi_rss_feed: str = None,
-                            only_if_package_seen: bool = False) -> None:
-    """Check for PyPI releases and create entries in the graph database if needed."""
-    releases = get_releases(pypi_rss_feed=pypi_rss_feed)
+def package_releases_update(monitored_packages: dict, *, graph: GraphDatabase, only_if_package_seen: bool = False):
+    """Check for updates of packages, notify about updates if configured so."""
+    sources = [Source(**config) for config in graph.python_package_index_listing()]
 
-    adapter = GraphDatabase()
-    adapter.connect()
+    for package_index in sources:
+        for package_name in package_index.get_packages():
+            for package_version in package_index.get_package_versions(package_name):
+                added = graph.create_pypi_package_version(
+                    package_name,
+                    package_version,
+                    package_index.url,
+                    only_if_package_seen=only_if_package_seen
+                )
 
-    for package_name, package_version in releases:
-        _LOGGER.debug(f"Found release entry in RSS feed for package {package_name} ({package_version})")
-        # We just create an entry in the graph database and let the solver update job do its work. These packages will
-        # be orphaned by default as there will be no connection to solver as no solver solved it's dependencies.
-        try:
-            added = adapter.create_pypi_package_version(
-                package_name,
-                package_version,
-                'https://pypi.org/simple',
-                only_if_package_seen=only_if_package_seen
-            )
-        except Exception as exc:
-            _LOGGER.exception(
-                f"Failed to create entry in the graph database for {package_name} ({package_version}): {str(exc)}"
-            )
-            continue
+                if added:
+                    _LOGGER.info(
+                        "New release of package %r in version %r hosted on %r added",
+                        package_name, package_version, package_index.url
+                    )
+                    _METRIC_PACKAGES_NEW_AND_ADDED.inc()
+                else:
+                    _LOGGER.debug(
+                        "Not added release of %r in version %r hosted on %r",
+                        package_name, package_version, package_index.url
+                    )
 
-        _METRIC_PACKAGES_NEW_JUST_DISCOVERED.inc()
-
-        if added:
-            _LOGGER.info(f"Package {package_name} ({package_version}) was added to the graph database")
-            _METRIC_PACKAGES_NEW_AND_ADDED.inc()
-        else:
-            _LOGGER.info(
-                f"Package {package_name} ({package_version}) was not added to the graph database")
-
-        if added and monitored_packages:
-            try:
-                release_notification(monitored_packages, package_name, package_version)
-                _METRIC_PACKAGES_NEW_AND_NOTIFIED.inc()
-            except Exception as exc:
-                _LOGGER.exception(
-                    f"Failed to do release notification for {package_name} ({package_version}), "
-                    f"error is not fatal: {str(exc)}")
+                if added and monitored_packages:
+                    try:
+                        release_notification(monitored_packages, package_name, package_version)
+                        _METRIC_PACKAGES_NEW_AND_NOTIFIED.inc()
+                    except Exception as exc:
+                        _LOGGER.exception(
+                            f"Failed to do release notification for {package_name} ({package_version}), "
+                            f"error is not fatal: {str(exc)}")
 
 
 @click.command()
@@ -173,14 +144,12 @@ def package_releases_update(monitored_packages: dict, pypi_rss_feed: str = None,
               help="Be verbose about what's going on.")
 @click.option('--version', is_flag=True, is_eager=True, callback=_print_version, expose_value=False,
               help="Print version and exit.")
-@click.option('--pypi-rss-feed', '-r', type=str, default=PYPI_RSS_UPDATES, show_default=True, metavar='URL',
-              help="PyPI RSS feed to be used.")
 @click.option('--monitoring-config', '-m', type=str, show_default=True, metavar='CONFIG',
               envvar='THOTH_PACKAGE_RELEASES_MONITORING_CONFIG',
               help="PyPI RSS feed to be used.")
 @click.option('--only-if-package-seen', is_flag=True, envvar='THOTH_PACKAGE_RELEASES_ONLY_IF_PACKAGE_SEEN',
               help="Create entries only for packages for which entries already exist in the graph database.")
-def cli(ctx=None, verbose=False, pypi_rss_feed=None, monitoring_config: str = None, only_if_package_seen=False):
+def cli(ctx=None, verbose=False, monitoring_config: str = None, only_if_package_seen=False):
     """Check for updates in PyPI RSS feed and add missing entries to the graph database."""
     if ctx:
         ctx.auto_envvar_prefix = 'THOTH_PACKAGE_RELEASES'
@@ -191,22 +160,20 @@ def cli(ctx=None, verbose=False, pypi_rss_feed=None, monitoring_config: str = No
     _LOGGER.debug("Debug mode turned on")
     _LOGGER.info(f"Package releases version: {__version__}")
 
+    graph = GraphDatabase()
+    graph.connect()
+
     monitored_packages = None
     if monitoring_config:
         try:
-            monitored_packages = _load_package_monitoring_config(
-                monitoring_config)
+            monitored_packages = _load_package_monitoring_config(monitoring_config)
         except Exception:
             _LOGGER.exception(f"Failed to load monitoring configuration from {monitoring_config}")
             raise
 
     try:
         with _METRIC_PACKAGES_RELEASES_TIME.time():
-            package_releases_update(
-                monitored_packages,
-                pypi_rss_feed=pypi_rss_feed,
-                only_if_package_seen=only_if_package_seen
-            )
+            package_releases_update(monitored_packages, graph=graph, only_if_package_seen=only_if_package_seen)
     finally:
         if _PUSH_GATEWAY_HOST and _PUSH_GATEWAY_PORT:
             try:

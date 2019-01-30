@@ -140,7 +140,7 @@ def package_releases_update(
                 )
 
                 if added is None:
-                    _LOGGER.info(
+                    _LOGGER.debug(
                         "Package %r in version %r hosted on %r was not added - it was not previously seen",
                         package_name,
                         package_version,

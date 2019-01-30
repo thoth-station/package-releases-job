@@ -131,7 +131,13 @@ def package_releases_update(
 
     for package_index in sources:
         for package_name in package_index.get_packages():
-            for package_version in package_index.get_package_versions(package_name):
+            try:
+                package_versions = package_index.get_package_versions(package_name)
+            except Exception as exc:
+                _LOGGER.exception("Failed to retrieve package versions for %r: %s", package_name, str(exc))
+                continue
+
+            for package_version in package_versions:
                 added = graph.create_pypi_package_version(
                     package_name,
                     package_version,

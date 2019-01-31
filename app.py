@@ -130,12 +130,13 @@ def package_releases_update(
     """Check for updates of packages, notify about updates if configured so."""
     sources = [Source(**config) for config in graph.python_package_index_listing()]
 
+    if only_if_package_seen:
+        # An optimization - we don't need to iterate over a large set present on index.
+        # Check only packages known to Thoth.
+        package_names = graph.get_python_packages()
+
     for package_index in sources:
-        if only_if_package_seen:
-            # An optimization - we don't need to iterate over a large set present on index.
-            # Check only packages known to Thoth.
-            package_names = graph.get_python_packages_for_index(package_index.url)
-        else:
+        if not only_if_package_seen:
             # Check all the packages present on index and eventually register them in Thoth.
             package_names = package_index.get_packages()
 
@@ -143,7 +144,7 @@ def package_releases_update(
             try:
                 package_versions = package_index.get_package_versions(package_name)
             except NotFound as exc:
-                _LOGGER.warning("No versions found for package %r: %s", package_name, str(exc))
+                _LOGGER.debug("No versions found for package %r on %r: %s", package_name, package_index.url, str(exc))
                 continue
             except Exception as exc:
                 _LOGGER.exception("Failed to retrieve package versions for %r: %s", package_name, str(exc))

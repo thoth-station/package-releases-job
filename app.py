@@ -214,7 +214,7 @@ def package_releases_update(
     show_default=True,
     metavar="CONFIG",
     envvar="THOTH_PACKAGE_RELEASES_MONITORING_CONFIG",
-    help="PyPI RSS feed to be used.",
+    help="A filesystem path or an URL to monitoring configuration file.",
 )
 @click.option(
     "--only-if-package-seen",
@@ -233,7 +233,7 @@ def cli(
         _LOGGER.setLevel(logging.DEBUG)
 
     _LOGGER.debug("Debug mode turned on")
-    _LOGGER.info(f"Package releases version: {__version__}")
+    _LOGGER.info(f"Package releases version: %r", __version__)
 
     graph = GraphDatabase()
     graph.connect()
@@ -260,7 +260,7 @@ def cli(
             try:
                 push_gateway = f"{_PUSH_GATEWAY_HOST}:{_PUSH_GATEWAY_PORT}"
                 _LOGGER.info(
-                    f"Submitting metrics to Prometheus push gateway {push_gateway}"
+                    "Submitting metrics to Prometheus push gateway %r", push_gateway
                 )
                 push_to_gateway(
                     push_gateway, job="package-releases", registry=prometheus_registry

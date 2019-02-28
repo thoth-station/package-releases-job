@@ -33,7 +33,7 @@ objects:
         app: thoth
         component: package-releases
     spec:
-      schedule: '0 */6 * * *'
+      schedule: '@daily'
       suspend: ${{THOTH_SUSPEND_JOB}}
       concurrencyPolicy: Forbid
       successfulJobsHistoryLimit: 4

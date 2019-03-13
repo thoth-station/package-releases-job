@@ -83,7 +83,7 @@ def _load_package_monitoring_config(config_path: str) -> typing.Optional[dict]:
         with open(config_path, "r") as config_file:
             content = config_file.read()
 
-    return yaml.load(content)
+    return yaml.safe_load(content)
 
 
 def release_notification(

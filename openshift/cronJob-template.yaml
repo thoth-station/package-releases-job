@@ -3,15 +3,15 @@ kind: Template
 metadata:
   name: package-releases-cronjob
   annotations:
-    description: This is Thoth Core - Package Releases Job
+    description: "Thoth: Package Releases Job"
     openshift.io/display-name: "Thoth: Package Releases Job"
-    version: 0.3.0
-    tags: poc,thoth,ai-stacks,aistacks,package-releases
+    version: 0.4.0
+    tags: thoth,ai-stacks,aistacks,package-releases
     template.openshift.io/documentation-url: https://github.com/Thoth-Station/
     template.openshift.io/long-description: >
       This template defines resources needed to deploy Thoth Package
-      Releases Job as a Proof-of-Concept to OpenShift.
-    template.openshift.io/provider-display-name: Red Hat, Inc.
+      Releases Job to OpenShift.
+    template.openshift.io/provider-display-name: "Red Hat, Inc."
   labels:
     template: package-releases-cronjob
     app: thoth
@@ -24,6 +24,18 @@ parameters:
     name: THOTH_SUSPEND_JOB
     value: "true"
 
+  - description: Project the ImageStream to be use lives in
+    displayName: ImageStream Project
+    required: true
+    name: IMAGE_STREAM_NAMESPACE
+    value: "thoth-infra-stage" # TODO adjust ansible role so that we dont need a default here
+
+  - description: Tag of the ImageStream to be use
+    displayName: ImageStream Tag
+    required: true
+    name: IMAGE_STREAM_TAG
+    value: "latest"
+
 objects:
   - kind: CronJob
     apiVersion: batch/v2alpha1
@@ -33,10 +45,10 @@ objects:
         app: thoth
         component: package-releases
     spec:
-      schedule: '@daily'
+      schedule: "@daily"
       suspend: ${{THOTH_SUSPEND_JOB}}
       concurrencyPolicy: Forbid
-      successfulJobsHistoryLimit: 4
+      successfulJobsHistoryLimit: 2
       startingDeadlineSeconds: 99
       failedJobsHistoryLimit: 4
       jobTemplate:
@@ -48,7 +60,7 @@ objects:
                 component: package-releases
             spec:
               containers:
-                - image: package-releases-job
+                - image: "${IMAGE_STREAM_NAMESPACE}/package-releases-job:${IMAGE_STREAM_TAG}"
                   name: package-releases
                   env:
                     - name: THOTH_PACKAGE_RELEASES_ONLY_IF_PACKAGE_SEEN

@@ -40,17 +40,17 @@
         },
         "boto3": {
             "hashes": [
-                "sha256:2a2206f398bd0f1d1a9c748e456f71a035a14f62cb6ae4913f2195386c9e8c64",
-                "sha256:bc9a3c5088f467206c154a65cdad462304245e3fce6c828cd2943a30a39b4be7"
+                "sha256:925192ef89563b61f9ac870e15d904e17d9a1d09393a0f84b00b408aca9a382d",
+                "sha256:bddff6ec134781f171dbb26382714e191f3b4ba7560b2263ea4088bca595d059"
             ],
-            "version": "==1.9.141"
+            "version": "==1.9.144"
         },
         "botocore": {
             "hashes": [
-                "sha256:593496403cc398baed6521c2f0fae004be36812c2b240a51d776a0ea1936c269",
-                "sha256:bf05621bb30a3a22cd2cdc2cd1d6ff61915c3d02d05b874d743a27dbcf3a6ee8"
+                "sha256:25fde576bf32f4cf21bda67eb7db41d3489e290bc1a65feb143e4cbc75121fe7",
+                "sha256:2bce34206bec7f1837f0e2f77c6324f0dee5325da522bf51cbefac1976426f99"
             ],
-            "version": "==1.12.141"
+            "version": "==1.12.144"
         },
         "certifi": {
             "hashes": [
@@ -349,10 +349,10 @@
         },
         "thoth-storages": {
             "hashes": [
-                "sha256:f92f4c01bd1d29bef81cea16d5adf64fdd09c1d918fd4c940772cc956affa81f"
+                "sha256:ca72a13661d345de370392999f10cf69ac634a1a95c6d0c4d1c4f902c7892279"
             ],
             "index": "pypi",
-            "version": "==0.11.1"
+            "version": "==0.11.2"
         },
         "timestamp": {
             "hashes": [
@@ -482,10 +482,10 @@
         },
         "pygments": {
             "hashes": [
-                "sha256:5ffada19f6203563680669ee7f53b64dabbeb100eb51b61996085e99c03b284a",
-                "sha256:e8218dd399a61674745138520d0d4cf2621d7e032439341bc3f647bff125818d"
+                "sha256:31cba6ffb739f099a85e243eff8cb717089fdd3c7300767d9fc34cb8e1b065f5",
+                "sha256:5ad302949b3c98dd73f8d9fcdc7e9cb592f120e32a18e23efd7f3dc51194472b"
             ],
-            "version": "==2.3.1"
+            "version": "==2.4.0"
         },
         "pyprint": {
             "hashes": [

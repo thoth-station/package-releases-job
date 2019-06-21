@@ -107,11 +107,11 @@ objects:
                       readOnly: true
                   resources:
                     requests:
-                      memory: "128Mi"
-                      cpu: "125m"
+                      memory: "256Mi"
+                      cpu: "500m"
                     limits:
                       memory: "512Mi"
-                      cpu: "250m"
+                      cpu: "500m"
               restartPolicy: OnFailure
               volumes:
                 - name: dgraph-tls-secrets

@@ -41,8 +41,7 @@ __version__ = "0.6.0" + "+thoth_storage." + thoth_storages_version
 init_logging()
 
 _LOGGER = logging.getLogger("thoth.package_releases")
-_PUSH_GATEWAY_HOST = os.getenv("PROMETHEUS_PUSHGATEWAY_HOST")
-_PUSH_GATEWAY_PORT = os.getenv("PROMETHEUS_PUSHGATEWAY_PORT")
+_THOTH_METRICS_PUSHGATEWAY_URL = os.getenv("PROMETHEUS_PUSHGATEWAY_URL")
 
 prometheus_registry = CollectorRegistry()
 _METRIC_PACKAGES_NEW_AND_ADDED = Gauge(
@@ -50,7 +49,7 @@ _METRIC_PACKAGES_NEW_AND_ADDED = Gauge(
 )
 _METRIC_PACKAGES_NEW_AND_NOTIFIED = Gauge(
     "packages_notified",
-    "Packages newly added and notification send",
+    "Packages newly added and notification sent",
     registry=prometheus_registry,
 )
 _METRIC_PACKAGES_RELEASES_TIME = Gauge(
@@ -258,17 +257,12 @@ def cli(
                 only_if_package_seen=only_if_package_seen,
             )
     finally:
-        if _PUSH_GATEWAY_HOST and _PUSH_GATEWAY_PORT:
+        if _THOTH_METRICS_PUSHGATEWAY_URL:
             try:
-                push_gateway = f"{_PUSH_GATEWAY_HOST}:{_PUSH_GATEWAY_PORT}"
-                _LOGGER.info(
-                    "Submitting metrics to Prometheus push gateway %r", push_gateway
-                )
-                push_to_gateway(
-                    push_gateway, job="package-releases", registry=prometheus_registry
-                )
-            except Exception as e:
-                _LOGGER.exception(f"An error occurred pushing the metrics: {str(e)}")
+                _LOGGER.info("Submitting metrics to Prometheus pushgateway %r", _THOTH_METRICS_PUSHGATEWAY_URL)
+                push_to_gateway(_THOTH_METRICS_PUSHGATEWAY_URL, job="package-release", registry=_PROMETHEUS_REGISTRY)
+            except Exception as exc:
+                _LOGGER.exception("An error occurred pushing the metrics: %s", exc)
 
 
 if __name__ == "__main__":

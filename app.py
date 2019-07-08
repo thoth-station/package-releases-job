@@ -151,7 +151,7 @@ def package_releases_update(
                 continue
 
             for package_version in package_versions:
-                added = graph.create_pypi_package_version(
+                added = graph.create_python_package_version_entity(
                     package_name,
                     package_version,
                     package_index.url,

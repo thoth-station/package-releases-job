@@ -18,9 +18,10 @@
     "default": {
         "amun": {
             "hashes": [
-                "sha256:2933c22bae7ad0cae5300a1259ae3b21bb8dc8ff485a5e2d5280fdd4da016be8"
+                "sha256:05cc96ff6caee7e8b36ca379e434e6f831145c88f2fc2ea860ff49d2e3d8d0bf",
+                "sha256:dd50865ecf3eed2e53c8f7376ac36c87079e7ba01c6053cd6aa7afa1cbe4065a"
             ],
-            "version": "==0.2.1"
+            "version": "==0.2.7"
         },
         "attrs": {
             "hashes": [
@@ -256,10 +257,10 @@
         },
         "pytz": {
             "hashes": [
-                "sha256:303879e36b721603cc54604edcac9d20401bdbe31e1e4fdee5b9f98d5d31dfda",
-                "sha256:d747dd3d23d77ef44c6a3526e274af6efeb0a6f1afd5a69ba4d5be4098c8e141"
+                "sha256:26c0b32e437e54a18161324a2fca3c4b9846b74a8dccddd843113109e1116b32",
+                "sha256:c894d57500a4cd2d5c71114aaab77dbab5eabd9022308ce5ac9bb93a60a6f0c7"
             ],
-            "version": "==2019.1"
+            "version": "==2019.2"
         },
         "pyyaml": {
             "hashes": [
@@ -348,11 +349,11 @@
         },
         "thoth-storages": {
             "hashes": [
-                "sha256:8896da012d2d10fb5bde11e8510840690b757d6d2795f810109466777a18faac",
-                "sha256:c490980efdef95fd4836f601f1e649b09e9f4303ed5007410c9f64d3da2832bd"
+                "sha256:6569e1ffbc681078f267956025fd9cbb5a93d32012f881beab252df03b81ba9e",
+                "sha256:7b3af21d09e7d2e869859002e956b2ef464d307f0bdc0415245c746bbd8cf0a3"
             ],
             "index": "pypi",
-            "version": "==0.18.0"
+            "version": "==0.18.1"
         },
         "timestamp": {
             "hashes": [

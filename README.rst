@@ -52,25 +52,20 @@ playbooks that live in the `core repository
 Running the job locally
 =======================
 
-You can run this job locally without a cluster deployment. To do so, prepare your virtual environment and run the script:
+You can run this job locally without a cluster deployment. To do so, prepare
+your virtual environment:
 
 .. code-block:: console
 
-  $ pipenv install  # Install all the requirements
+  $ pipenv install  --dev # Install all the requirements
+
+After that, you need to run a local instance of database - follow `instractions
+in the README file for more info
+<https://github.com/thoth-station/storages#running-postgresql-locally>`_ and
+prepare the database schema:
+
   $ pipenv run python3 ./app.py
 
-Job will talk to your local Dgraph instance by default which is located at `localhost:9080` by default. Check `relevant instructions on how to setup a local Dgraph instance <https://github.com/thoth-station/storages#running-dgraph-locally>`_.
+Job will talk to your local database instance by default which is located at
+`localhost:5432` by default.
 
-If you would like to talk to a cluster instance of Dgraph, you can do so by providing relevant environment variables:
-
-.. code-block:: console
-
-  $ GRAPH_SERVICE_HOST=graph.test.thoth-station.ninja GRAPH_TLS_PATH=./tls-test pipenv run python3 ./app.py
-
-You need to obtain relevant TLS certificates for the cluster deployment you would like to talk to and place them into `./tls-test` directory.
-
-Check documentation for more information on parameters that can be supplied to this job:
-
-.. code-block:: console
-
-  $ pipenv run python3 ./app.py --help

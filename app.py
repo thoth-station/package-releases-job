@@ -42,6 +42,7 @@ init_logging()
 
 _LOGGER = logging.getLogger("thoth.package_releases")
 _THOTH_METRICS_PUSHGATEWAY_URL = os.getenv("PROMETHEUS_PUSHGATEWAY_URL")
+_THOTH_DEPLOYMENT_NAME = os.environ["THOTH_DEPLOYMENT_NAME"]
 
 prometheus_registry = CollectorRegistry()
 _METRIC_PACKAGES_NEW_AND_ADDED = Gauge(
@@ -86,7 +87,7 @@ def _load_package_monitoring_config(config_path: str) -> typing.Optional[dict]:
 
 
 def release_notification(
-    monitored_packages: dict, package_name: str, package_version: str
+    monitored_packages: dict, package_name: str, package_version: str, index_url: str,
 ) -> bool:
     """Check for release notification in monitoring configuration and trigger notification if requested."""
     was_triggered = False
@@ -97,13 +98,25 @@ def release_notification(
         try:
             # We expand URL based on environment variables, package name and package version so a user can fully
             # configure what should be present in the URL.
+            kwargs = {}
+            if trigger["url"].startswith("https://"):
+                kwargs["verify"] = trigger.get("tls_verify", True)
+
             response = requests.post(
                 trigger["url"].format(
                     **os.environ,
                     package_name=package_name,
                     package_version=package_version,
+                    index_url=index_url,
+                    thoth_deployment_name=_THOTH_DEPLOYMENT_NAME,
                 ),
-                verify=trigger.get("tls_verify", True),
+                data={
+                    "package_name": package_name,
+                    "package_version": package_version,
+                    "index_url": index_url,
+                    "thoth_deployment_name": _THOTH_DEPLOYMENT_NAME,
+                },
+                **kwargs,
             )
             response.raise_for_status()
             was_triggered = True
@@ -187,13 +200,13 @@ def package_releases_update(
                 if added and monitored_packages:
                     try:
                         release_notification(
-                            monitored_packages, package_name, package_version
+                            monitored_packages, package_name, package_version, package_index.url
                         )
                         _METRIC_PACKAGES_NEW_AND_NOTIFIED.inc()
                     except Exception as exc:
                         _LOGGER.exception(
-                            f"Failed to do release notification for {package_name} ({package_version}), "
-                            f"error is not fatal: {str(exc)}"
+                            f"Failed to do release notification for {package_name} ({package_version} "
+                            f"from {package_index.url}), error is not fatal: {str(exc)}"
                         )
 
 

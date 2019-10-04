@@ -3,3 +3,4 @@ tensorflow:
   triggers:
     - url: "{TENSORFLOW_RELEASE_API}/tensorflow/release/{package_version}"
       tls_verify: false
+    - url: "http://package-releases.thoth.ultrahook.com"

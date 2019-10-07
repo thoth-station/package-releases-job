@@ -4,19 +4,24 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-thoth-storages = "*"
 click = "*"
-thoth-common = "*"
 requests = "*"
 prometheus-client = "*"
-pyyaml = "==3.12"
+pyyaml = ">=4.2b1"
+thoth-storages = "*"
+thoth-common = "*"
 thoth-python = "*"
 
 [dev-packages]
 coala = "*"
-pycodestylebear = "*"
-yamllintbear = "*"
-pydocstylebear = "*"
+coala-bears = "*"
+black = "*"
+pre-commit = "*"
+pytest = "*"
 
 [requires]
 python_version = "3.6"
+
+[pipenv]
+allow_prereleases = true
+

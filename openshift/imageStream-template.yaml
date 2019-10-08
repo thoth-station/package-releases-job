@@ -5,14 +5,14 @@ metadata:
   annotations:
     description: This is Thoth Core - Package Releases ImageStream
     openshift.io/display-name: "Thoth: Package Releases ImageStream"
-    version: 0.4.0
-    tags: poc,thoth,ai-stacks,package-releases
+    version: 0.7.0
+    tags: thoth,ai-stacks,package-releases
     template.openshift.io/documentation-url: https://github.com/Thoth-Station/
     template.openshift.io/long-description: >
       This template defines resources needed to deploy Thoth Package Releases
-      ImageStream as a Proof-of-Concept to OpenShift.
+      ImageStream to OpenShift.
     template.openshift.io/provider-display-name: Red Hat, Inc.
-    thoth-station.ninja/template-version: 0.4.0
+    thoth-station.ninja/template-version: 0.7.0
   labels:
     template: package-releases-imagestream
     app: thoth
@@ -22,12 +22,12 @@ objects:
   - kind: ImageStream
     apiVersion: image.openshift.io/v1
     metadata:
-      annotations:
-        thoth-station.ninja/template-version: 0.4.0
+      name: package-releases-job
       labels:
         app: thoth
         component: package-releases
-      name: package-releases-job
+      annotations:
+        thoth-station.ninja/template-version: 0.7.0
     spec:
       name: latest
       lookupPolicy:

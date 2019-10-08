@@ -30,14 +30,16 @@ from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 from thoth.common import init_logging
 from thoth.common import __version__ as thoth_common_version
 from thoth.python import Source
+from thoth.python import __version__ as thoth_python_version
 from thoth.python.exceptions import NotFound
 from thoth.storages import GraphDatabase
 from thoth.storages import __version__ as thoth_storages_version
+from thoth.messaging import __version__ as thoth_messaging_version
 
 
-# Reuse thoth-storages version as we rely on it.
 __version__ = (
-    f"0.6.0+thoth_storage.{thoth_storages_version}+thoth_common.{thoth_common_version}"
+    f"0.7.0-dev+thoth_storage.{thoth_storages_version}+thoth_python."
+    f"{thoth_python_version}+thoth_messaging.{thoth_messaging_version}"
 )
 
 

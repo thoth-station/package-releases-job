@@ -146,7 +146,9 @@ def package_releases_update(
     if only_if_package_seen:
         # An optimization - we don't need to iterate over a large set present on index.
         # Check only packages known to Thoth.
-        package_names = graph.get_python_packages()
+        package_names = list(set([p_name[0] for p_name in graph.get_python_packages_all(
+            count=graph.get_python_packages_count_all()
+        )])))
 
     for package_index in sources:
         _LOGGER.info("Checking index %r for new package releases", package_index.url)

@@ -199,9 +199,10 @@ def package_releases_update(
                     )
 
                 if added and monitored_packages:
+                    entity = added[0]
                     try:
                         release_notification(
-                            monitored_packages, package_name, package_version, package_index.url
+                            monitored_packages, entity.package_name, entity.package_version, package_index.url
                         )
                         _METRIC_PACKAGES_NEW_AND_NOTIFIED.inc()
                     except Exception as exc:

@@ -181,7 +181,7 @@ def package_releases_update(
                     )
                     continue
 
-                existed = added[0]
+                existed = added[1]
                 if not existed:
                     _LOGGER.info(
                         "New release of package %r in version %r hosted on %r added",

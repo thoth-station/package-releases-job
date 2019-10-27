@@ -5,13 +5,14 @@ metadata:
   annotations:
     description: This is Thoth Core - Package Releases Job BuildConfig
     openshift.io/display-name: "Thoth: Package Releases Job BuildConfig"
-    version: 0.2.0
+    version: 0.4.0
     tags: poc,thoth,ai-stacks,package-releases
     template.openshift.io/documentation-url: https://github.com/Thoth-Station/
     template.openshift.io/long-description: >
       This template defines resources needed to deploy Thoth Package
       Releases Job as a Proof-of-Concept to OpenShift.
     template.openshift.io/provider-display-name: Red Hat, Inc.
+    thoth-station.ninja/template-version: 0.4.0
   labels:
     template: package-releases-buildconfig
     app: thoth
@@ -22,6 +23,8 @@ objects:
     apiVersion: build.openshift.io/v1
     metadata:
       name: package-releases-job
+      annotations:
+        thoth-station.ninja/template-version: 0.4.0
       labels:
         app: thoth
         component: package-releases
@@ -56,7 +59,7 @@ objects:
             - name: "THOTH_DRY_RUN"
               value: "1"
             - name: "THOTH_ADVISE"
-              value: "1"
+              value: ${THOTH_ADVISE}
             - name: "THAMOS_VERBOSE"
               value: "1"
             - name: "THAMOS_DEBUG"
@@ -93,3 +96,9 @@ parameters:
     required: true
     name: IMAGE_STREAM_TAG
     value: 'latest'
+
+  - description: Thamos Advise setup tag value
+    displayName: THOTH_ADVISE
+    required: true
+    name: THOTH_ADVISE
+    value: "1"

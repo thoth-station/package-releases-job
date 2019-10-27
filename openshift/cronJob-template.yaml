@@ -12,6 +12,7 @@ metadata:
       This template defines resources needed to deploy Thoth Package
       Releases Job to OpenShift.
     template.openshift.io/provider-display-name: "Red Hat, Inc."
+    thoth-station.ninja/template-version: 0.4.0
   labels:
     template: package-releases-cronjob
     app: thoth
@@ -42,6 +43,8 @@ objects:
     apiVersion: batch/v1beta1
     metadata:
       name: package-releases
+      annotations:
+        thoth-station.ninja/template-version: 0.4.0
       labels:
         app: thoth
         component: package-releases

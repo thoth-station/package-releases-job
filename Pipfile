@@ -12,6 +12,7 @@ thoth-python = "*"
 thoth-common = "*"
 thoth-storages = "*"
 thoth-messaging = "*"
+aiohttp = "*"
 
 [dev-packages]
 pylint = "*"

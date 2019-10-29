@@ -674,11 +674,11 @@
         },
         "thoth-storages": {
             "hashes": [
-                "sha256:722ee4cbed6ca4511dda6324fa10ea06638c7f36eb45dbbea14fac7a2976e1c6",
-                "sha256:7acce688c7e7952c2979de0227f6da00568b13d3282ddbf14af0a76c0af27544"
+                "sha256:6b33180076155abbbf31bd7e5d703a79ec7ac986fd23ef43e3d21763800bccf1",
+                "sha256:8bb84ce0534767455232fbed7c17ac09b98f6cac4e04899f7d71883a363d6b26"
             ],
             "index": "pypi",
-            "version": "==0.19.12"
+            "version": "==0.19.13"
         },
         "toml": {
             "hashes": [
@@ -1414,8 +1414,6 @@
         "regex": {
             "hashes": [
                 "sha256:1e9f9bc44ca195baf0040b1938e6801d2f3409661c15fe57f8164c678cfc663f",
-                "sha256:2079f83ac094b436a8078988e38af44286c67eb5a259becfc563e8a81cb34a11",
-                "sha256:43dbcc90e1bd42d905abc8dac75a64768d4b621c9e01adfcd8a57df1af65793e",
                 "sha256:587b62d48ca359d2d4f02d486f1f0aa9a20fbaf23a9d4198c4bed72ab2f6c849",
                 "sha256:835ccdcdc612821edf132c20aef3eaaecfb884c9454fdc480d5887562594ac61",
                 "sha256:93f6c9da57e704e128d90736430c5c59dd733327882b371b0cae8833106c2a21",

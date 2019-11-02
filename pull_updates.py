@@ -114,6 +114,7 @@ async def healthz(web, request):
 
 @app.timer(interval=_PULL_UPDATES_TIMER_SLEEP)
 async def pull_updates_timer(self):
+    """Go and look for updates of all packages on all known indices."""
     _LOGGER.debug("pull_updates_timer Task woke up")
 
     if not graph.is_connected():

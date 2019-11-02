@@ -44,6 +44,7 @@ init_logging()
 _LOGGER = logging.getLogger("thoth.package_releases")
 _THOTH_METRICS_PUSHGATEWAY_URL = os.getenv("PROMETHEUS_PUSHGATEWAY_URL")
 _THOTH_DEPLOYMENT_NAME = os.environ["THOTH_DEPLOYMENT_NAME"]
+_PROMETHEUS_REGISTRY = os.environ["PROMETHEUS_REGISTRY"]
 
 prometheus_registry = CollectorRegistry()
 _METRIC_PACKAGES_NEW_AND_ADDED = Gauge(
@@ -141,7 +142,7 @@ def package_releases_update(
     only_if_package_seen: bool = False,
 ) -> None:
     """Check for updates of packages, notify about updates if configured so."""
-    sources = [Source(**config) for config in graph.python_package_index_listing()]
+    sources = [Source(**config) for config in graph.get_python_package_index_urls_all()]
 
     if only_if_package_seen:
         # An optimization - we don't need to iterate over a large set present on index.

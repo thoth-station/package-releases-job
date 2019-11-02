@@ -33,14 +33,12 @@ from mode import Service
 
 from thoth.common import init_logging
 from thoth.common import __version__ as thoth_common_version
-from thoth.python import Source, AIOSource
+from thoth.python import AIOSource
 from thoth.python import __version__ as thoth_python_version
 from thoth.python.exceptions import NotFound
 from thoth.storages import GraphDatabase
 from thoth.storages import __version__ as thoth_storages_version
 from thoth.messaging import THOTH_PACKAGE_RELEASES_TOPIC_NAME, PackageRelease, __version__ as thoth_messaging_version
-
-from bs4 import BeautifulSoup
 
 
 __version__ = (
@@ -48,20 +46,21 @@ __version__ = (
     f"{thoth_python_version}+thoth_messaging.{thoth_messaging_version}"
 )
 
-_DEBUG = os.getenv("DEBUG", False)
-
 
 init_logging()
+
+
+_DEBUG = os.getenv("DEBUG", False)
 _LOGGER = logging.getLogger("pull_updates")
 _LOGGER.setLevel(logging.DEBUG if _DEBUG else logging.INFO)
 
 _KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 _KAFKA_CAFILE = os.getenv("KAFKA_CAFILE", "secrets/data-hub-kafka-ca.crt")
 _KAFKA_TOPIC_RETENTION_TIME_SECONDS = 60 * 60 * 24 * 45  # seconds
-_UPDATE_PULLER_SERVICE_SLEEP = 25  # FIXME 60 * 5  # seconds
+_PULL_UPDATES_TIMER_SLEEP = os.getenv("PULL_UPDATES_TIMER_SLEEP", 25)  # FIXME 60 * 5  # seconds
+
 
 graph = None
-session = aiohttp.ClientSession()
 
 ssl_context = ssl.create_default_context(purpose=ssl.Purpose.SERVER_AUTH, cafile=_KAFKA_CAFILE)
 app = faust.App(
@@ -113,25 +112,26 @@ async def healthz(web, request):
         )
 
 
-@app.timer(interval=10.0)
+@app.timer(interval=_PULL_UPDATES_TIMER_SLEEP)
 async def pull_updates_timer(self):
     _LOGGER.debug("pull_updates_timer Task woke up")
 
     if not graph.is_connected():
         _LOGGER.error("Thoth's Knowledge Graph is not connected!")
 
-    sources = [AIOSource(**config) for config in graph.python_package_index_listing()]
+    # get all the Indicies known to Thoth
+    sources = [AIOSource(**config) for config in graph.get_python_package_index_all()]
 
     _LOGGER.debug(f"checking indices: {sources}")
 
     for package_index in sources:
         _LOGGER.info("Checking index %r for new package releases", package_index.url)
 
-        for package_name in await package_index.get_packages():
+        packages = await package_index.get_packages()
+        async for package_name in packages:
             _LOGGER.info(f"checking '{package_name}' for new releases")
 
             try:
-                # TODO this should also be async
                 package_versions = await package_index.get_package_versions(package_name)
             except NotFound as exc:
                 _LOGGER.debug("No versions found for package %r on %r: %s", package_name, package_index.url, str(exc))
@@ -140,7 +140,7 @@ async def pull_updates_timer(self):
                 _LOGGER.exception("Failed to retrieve package versions for %r: %s", package_name, str(exc))
                 continue
 
-            for package_version in package_versions:
+            async for package_version in package_versions:
                 # let's add the package_version and check if it existed before....
                 added = graph.create_python_package_version_entity(
                     package_name, package_version, package_index.url, only_if_package_seen=0

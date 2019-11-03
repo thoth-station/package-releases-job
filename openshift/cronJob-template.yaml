@@ -53,7 +53,7 @@ objects:
       suspend: ${{THOTH_SUSPEND_JOB}}
       concurrencyPolicy: Forbid
       successfulJobsHistoryLimit: 2
-      startingDeadlineSeconds: 99
+      startingDeadlineSeconds: null
       failedJobsHistoryLimit: 4
       jobTemplate:
         spec:

@@ -13,8 +13,7 @@ thoth-common = "*"
 thoth-storages = "*"
 thoth-messaging = "*"
 aiohttp = "*"
-mode = "==4.0.0"
-faust = "*"
+faust = "==1.7.4"
 
 [dev-packages]
 pylint = "*"

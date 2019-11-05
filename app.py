@@ -36,7 +36,9 @@ from thoth.storages import __version__ as thoth_storages_version
 
 
 # Reuse thoth-storages version as we rely on it.
-__version__ = f"0.6.0+thoth_storage.{thoth_storages_version}+thoth_common.{thoth_common_version}"
+__version__ = (
+    f"0.6.0+thoth_storage.{thoth_storages_version}+thoth_common.{thoth_common_version}"
+)
 
 
 init_logging()
@@ -44,7 +46,6 @@ init_logging()
 _LOGGER = logging.getLogger("thoth.package_releases")
 _THOTH_METRICS_PUSHGATEWAY_URL = os.getenv("PROMETHEUS_PUSHGATEWAY_URL")
 _THOTH_DEPLOYMENT_NAME = os.environ["THOTH_DEPLOYMENT_NAME"]
-_PROMETHEUS_REGISTRY = os.environ["PROMETHEUS_REGISTRY"]
 
 prometheus_registry = CollectorRegistry()
 _METRIC_PACKAGES_NEW_AND_ADDED = Gauge(
@@ -89,7 +90,7 @@ def _load_package_monitoring_config(config_path: str) -> typing.Optional[dict]:
 
 
 def release_notification(
-    monitored_packages: dict, package_name: str, package_version: str, index_url: str,
+    monitored_packages: dict, package_name: str, package_version: str, index_url: str
 ) -> bool:
     """Check for release notification in monitoring configuration and trigger notification if requested."""
     was_triggered = False
@@ -159,10 +160,19 @@ def package_releases_update(
             try:
                 package_versions = package_index.get_package_versions(package_name)
             except NotFound as exc:
-                _LOGGER.debug("No versions found for package %r on %r: %s", package_name, package_index.url, str(exc))
+                _LOGGER.debug(
+                    "No versions found for package %r on %r: %s",
+                    package_name,
+                    package_index.url,
+                    str(exc),
+                )
                 continue
             except Exception as exc:
-                _LOGGER.exception("Failed to retrieve package versions for %r: %s", package_name, str(exc))
+                _LOGGER.exception(
+                    "Failed to retrieve package versions for %r: %s",
+                    package_name,
+                    str(exc),
+                )
                 continue
 
             for package_version in package_versions:
@@ -203,7 +213,10 @@ def package_releases_update(
                     entity = added[0]
                     try:
                         release_notification(
-                            monitored_packages, entity.package_name, entity.package_version, package_index.url
+                            monitored_packages,
+                            entity.package_name,
+                            entity.package_version,
+                            package_index.url,
                         )
                         _METRIC_PACKAGES_NEW_AND_NOTIFIED.inc()
                     except Exception as exc:
@@ -275,8 +288,15 @@ def cli(
     finally:
         if _THOTH_METRICS_PUSHGATEWAY_URL:
             try:
-                _LOGGER.info("Submitting metrics to Prometheus pushgateway %r", _THOTH_METRICS_PUSHGATEWAY_URL)
-                push_to_gateway(_THOTH_METRICS_PUSHGATEWAY_URL, job="package-release", registry=_PROMETHEUS_REGISTRY)
+                _LOGGER.info(
+                    "Submitting metrics to Prometheus pushgateway %r",
+                    _THOTH_METRICS_PUSHGATEWAY_URL,
+                )
+                push_to_gateway(
+                    _THOTH_METRICS_PUSHGATEWAY_URL,
+                    job="package-release",
+                    registry=prometheus_registry,
+                )
             except Exception as exc:
                 _LOGGER.exception("An error occurred pushing the metrics: %s", exc)
 

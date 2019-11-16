@@ -57,7 +57,7 @@ _LOGGER.setLevel(logging.DEBUG if _DEBUG else logging.INFO)
 _KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
 _KAFKA_CAFILE = os.getenv("KAFKA_CAFILE", "secrets/data-hub-kafka-ca.crt")
 _KAFKA_TOPIC_RETENTION_TIME_SECONDS = 60 * 60 * 24 * 45  # seconds
-_PULL_UPDATES_TIMER_SLEEP = os.getenv("PULL_UPDATES_TIMER_SLEEP", 25)  # FIXME 60 * 5  # seconds
+_PULL_UPDATES_TIMER_SLEEP_SECONDS = os.getenv("PULL_UPDATES_TIMER_SLEEP", 60 * 5)
 
 
 graph = None
@@ -112,7 +112,7 @@ async def healthz(web, request):
         )
 
 
-@app.timer(interval=_PULL_UPDATES_TIMER_SLEEP)
+@app.timer(interval=_PULL_UPDATES_TIMER_SLEEP_SECONDS)
 async def pull_updates_timer(self):
     """Go and look for updates of all packages on all known indices."""
     _LOGGER.debug("pull_updates_timer Task woke up")

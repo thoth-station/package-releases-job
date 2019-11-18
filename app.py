@@ -143,7 +143,7 @@ def package_releases_update(
     only_if_package_seen: bool = False,
 ) -> None:
     """Check for updates of packages, notify about updates if configured so."""
-    sources = [Source(**config) for config in graph.get_python_package_index_all()]
+    sources = [Source(**config) for config in graph.get_python_package_index_all(enabled=True)]
 
     if only_if_package_seen:
         # An optimization - we don't need to iterate over a large set present on index.

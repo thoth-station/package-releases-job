@@ -19,6 +19,12 @@ metadata:
     component: package-releases
 
 parameters:
+  - description: Registry the ImageStream to be used
+    displayName: ImageStream Registry
+    required: true
+    name: IMAGE_STREAM_REGISTRY
+    value: "docker-registry.default.svc:5000"
+
   - displayName: Suspend CronJob run
     description: Suspend CronJob run
     required: true
@@ -64,7 +70,7 @@ objects:
                 component: package-releases
             spec:
               containers:
-                - image: "${IMAGE_STREAM_NAMESPACE}/package-releases-job:${IMAGE_STREAM_TAG}"
+                - image: "${IMAGE_STREAM_REGISTRY}/${IMAGE_STREAM_NAMESPACE}/package-releases-job:${IMAGE_STREAM_TAG}"
                   name: package-releases
                   env:
                     - name: THOTH_PACKAGE_RELEASES_ONLY_IF_PACKAGE_SEEN

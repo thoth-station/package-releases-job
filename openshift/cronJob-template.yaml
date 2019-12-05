@@ -134,4 +134,11 @@ objects:
                     limits:
                       memory: "512Mi"
                       cpu: "500m"
+                  livenessProbe:
+                    failureThreshold: 1
+                    # Give this job 2 hours to finish
+                    initialDelaySeconds: 7200
+                    periodSeconds: 10
+                    tcpSocket:
+                      port: 80
               restartPolicy: OnFailure

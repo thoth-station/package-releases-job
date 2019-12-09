@@ -55,7 +55,7 @@ objects:
         app: thoth
         component: package-releases
     spec:
-      schedule: "*/60 * * * *"
+      schedule: "0 */12 * * *"
       suspend: ${{THOTH_SUSPEND_JOB}}
       concurrencyPolicy: Forbid
       successfulJobsHistoryLimit: 2

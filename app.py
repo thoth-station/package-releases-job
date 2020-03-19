@@ -17,6 +17,7 @@
 
 """Check for new releases on Python index and mark new packages in the graph database."""
 
+import sys
 import logging
 import typing
 
@@ -26,6 +27,7 @@ import yaml
 
 import click
 from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
+from jsonpath_ng import parse
 
 from thoth.common import init_logging
 from thoth.common import __version__ as thoth_common_version
@@ -140,23 +142,15 @@ def package_releases_update(
     monitored_packages: dict,
     *,
     graph: GraphDatabase,
+    package_names: typing.Optional[typing.List[str]] = None,
     only_if_package_seen: bool = False,
 ) -> None:
     """Check for updates of packages, notify about updates if configured so."""
     sources = [Source(**config) for config in graph.get_python_package_index_all(enabled=True)]
 
-    if only_if_package_seen:
-        # An optimization - we don't need to iterate over a large set present on index.
-        # Check only packages known to Thoth.
-        package_names = graph.get_python_package_version_entities_names_all()
-
     for package_index in sources:
         _LOGGER.info("Checking index %r for new package releases", package_index.url)
-        if not only_if_package_seen:
-            # Check all the packages present on index and eventually register them in Thoth.
-            package_names = package_index.get_packages()
-
-        for package_name in package_names:
+        for package_name in package_names or package_index.get_packages():
             try:
                 package_versions = package_index.get_package_versions(package_name)
             except NotFound as exc:
@@ -252,8 +246,30 @@ def package_releases_update(
     envvar="THOTH_PACKAGE_RELEASES_ONLY_IF_PACKAGE_SEEN",
     help="Create entries only for packages for which entries already exist in the graph database.",
 )
+@click.option(
+    "--package-names-file",
+    "-f",
+    type=str,
+    metavar="FILE.json",
+    envvar="THOTH_PACKAGE_RELEASES_PACKAGE_NAMES_FILE",
+    help="A path to a JSON file that stores information about package names, "
+         "disjoint with `--only-if-package-seen`.",
+)
+@click.option(
+    "--package-names-file-jsonpath",
+    type=str,
+    metavar="JSONPATH",
+    envvar="THOTH_PACKAGE_RELEASES_PACKAGE_NAMES_FILE_JSONPATH",
+    help="A path to a JSON/YAML file that stores information about package names, "
+         "disjoint with `--only-if-package-seen`.",
+)
 def cli(
-    ctx=None, verbose=False, monitoring_config: str = None, only_if_package_seen=False
+    ctx=None,
+    verbose: bool = False,
+    monitoring_config: typing.Optional[str] = None,
+    only_if_package_seen: bool = False,
+    package_names_file: typing.Optional[str] = None,
+    package_names_file_jsonpath: typing.Optional[str] = None,
 ):
     """Check for updates in PyPI RSS feed and add missing entries to the graph database."""
     if ctx:
@@ -265,8 +281,42 @@ def cli(
     _LOGGER.debug("Debug mode turned on")
     _LOGGER.info(f"Package releases version: %r", __version__)
 
+    if package_names_file_jsonpath and not package_names_file:
+        raise ValueError("Cannot use JSON path when no package names file provided")
+
+    if not package_names_file_jsonpath and package_names_file:
+        raise ValueError("JSON path required when obtaining package names from a JSON file")
+
+    if only_if_package_seen and package_names_file:
+        raise ValueError(
+            "Only one of --package-names-file and --only-if-packages-seen is "
+            "allowed method for describing packages to be checked"
+        )
+
+    package_names = None
+    if package_names_file:
+        with open(package_names_file, "r") as f:
+            content = yaml.safe_load(f)
+
+        package_names = []
+        for item in parse(package_names_file_jsonpath).find(content):
+            for entry in item.value:
+                if not isinstance(entry, str):
+                    raise ValueError(f"Found item in the file is not a string describing package name: {item!r}")
+                package_names.append(entry)
+
+        if not package_names:
+            _LOGGER.warning("No packages to be checked for new releases")
+            sys.exit(2)
+
+    # Connect once we really need to.
     graph = GraphDatabase()
     graph.connect()
+
+    if only_if_package_seen:
+        # An optimization - we don't need to iterate over a large set present on index.
+        # Check only packages known to Thoth.
+        package_names = graph.get_python_package_version_entities_names_all()
 
     monitored_packages = None
     if monitoring_config:
@@ -283,7 +333,7 @@ def cli(
             package_releases_update(
                 monitored_packages,
                 graph=graph,
-                only_if_package_seen=only_if_package_seen,
+                package_names=package_names,
             )
     finally:
         if _THOTH_METRICS_PUSHGATEWAY_URL:

@@ -7,16 +7,16 @@ name = "pypi"
 click = "*"
 requests = "*"
 prometheus-client = "*"
-pyyaml = ">=4.2b1"
+pyyaml = "*"
 thoth-storages = "*"
 thoth-common = "*"
 thoth-python = "*"
+jsonpath-ng = "*"
 
 [dev-packages]
 coala = "*"
 coala-bears = "*"
 black = "*"
-pre-commit = "*"
 pytest = "*"
 
 [requires]
@@ -24,4 +24,3 @@ python_version = "3.6"
 
 [pipenv]
 allow_prereleases = true
-

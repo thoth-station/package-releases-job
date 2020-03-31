@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # thoth-package-releases-job
-# Copyright(C) 2018, 2019 Fridolin Pokorny
+# Copyright(C) 2018, 2019, 2020 Fridolin Pokorny
 #
 # This program is free software: you can redistribute it and / or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
 
 """Check for new releases on Python index and mark new packages in the graph database."""
 
+import sys
 import logging
 import typing
 
@@ -26,6 +27,7 @@ import yaml
 
 import click
 from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
+from jsonpath_ng import parse
 
 from thoth.common import init_logging
 from thoth.common import __version__ as thoth_common_version
@@ -36,7 +38,9 @@ from thoth.storages import __version__ as thoth_storages_version
 
 
 # Reuse thoth-storages version as we rely on it.
-__version__ = f"0.6.0+thoth_storage.{thoth_storages_version}+thoth_common.{thoth_common_version}"
+__version__ = (
+    f"0.6.0+thoth_storage.{thoth_storages_version}+thoth_common.{thoth_common_version}"
+)
 
 
 init_logging()
@@ -88,7 +92,7 @@ def _load_package_monitoring_config(config_path: str) -> typing.Optional[dict]:
 
 
 def release_notification(
-    monitored_packages: dict, package_name: str, package_version: str, index_url: str,
+    monitored_packages: dict, package_name: str, package_version: str, index_url: str
 ) -> bool:
     """Check for release notification in monitoring configuration and trigger notification if requested."""
     was_triggered = False
@@ -138,32 +142,31 @@ def package_releases_update(
     monitored_packages: dict,
     *,
     graph: GraphDatabase,
+    package_names: typing.Optional[typing.List[str]] = None,
     only_if_package_seen: bool = False,
 ) -> None:
     """Check for updates of packages, notify about updates if configured so."""
-    sources = [Source(**config) for config in graph.python_package_index_listing()]
-
-    if only_if_package_seen:
-        # An optimization - we don't need to iterate over a large set present on index.
-        # Check only packages known to Thoth.
-        package_names = list(set([p_name[0] for p_name in graph.get_python_packages_all(
-            count=graph.get_python_packages_count_all()
-        )])))
+    sources = [Source(**config) for config in graph.get_python_package_index_all(enabled=True)]
 
     for package_index in sources:
         _LOGGER.info("Checking index %r for new package releases", package_index.url)
-        if not only_if_package_seen:
-            # Check all the packages present on index and eventually register them in Thoth.
-            package_names = package_index.get_packages()
-
-        for package_name in package_names:
+        for package_name in package_names or package_index.get_packages():
             try:
                 package_versions = package_index.get_package_versions(package_name)
             except NotFound as exc:
-                _LOGGER.debug("No versions found for package %r on %r: %s", package_name, package_index.url, str(exc))
+                _LOGGER.debug(
+                    "No versions found for package %r on %r: %s",
+                    package_name,
+                    package_index.url,
+                    str(exc),
+                )
                 continue
             except Exception as exc:
-                _LOGGER.exception("Failed to retrieve package versions for %r: %s", package_name, str(exc))
+                _LOGGER.exception(
+                    "Failed to retrieve package versions for %r: %s",
+                    package_name,
+                    str(exc),
+                )
                 continue
 
             for package_version in package_versions:
@@ -183,7 +186,7 @@ def package_releases_update(
                     )
                     continue
 
-                existed = added[0]
+                existed = added[1]
                 if not existed:
                     _LOGGER.info(
                         "New release of package %r in version %r hosted on %r added",
@@ -201,9 +204,13 @@ def package_releases_update(
                     )
 
                 if added and monitored_packages:
+                    entity = added[0]
                     try:
                         release_notification(
-                            monitored_packages, package_name, package_version, package_index.url
+                            monitored_packages,
+                            entity.package_name,
+                            entity.package_version,
+                            package_index.url,
                         )
                         _METRIC_PACKAGES_NEW_AND_NOTIFIED.inc()
                     except Exception as exc:
@@ -239,8 +246,30 @@ def package_releases_update(
     envvar="THOTH_PACKAGE_RELEASES_ONLY_IF_PACKAGE_SEEN",
     help="Create entries only for packages for which entries already exist in the graph database.",
 )
+@click.option(
+    "--package-names-file",
+    "-f",
+    type=str,
+    metavar="FILE.json",
+    envvar="THOTH_PACKAGE_RELEASES_PACKAGE_NAMES_FILE",
+    help="A path to a JSON file that stores information about package names, "
+         "disjoint with `--only-if-package-seen`.",
+)
+@click.option(
+    "--package-names-file-jsonpath",
+    type=str,
+    metavar="JSONPATH",
+    envvar="THOTH_PACKAGE_RELEASES_PACKAGE_NAMES_FILE_JSONPATH",
+    help="A path to a JSON/YAML file that stores information about package names, "
+         "disjoint with `--only-if-package-seen`.",
+)
 def cli(
-    ctx=None, verbose=False, monitoring_config: str = None, only_if_package_seen=False
+    ctx=None,
+    verbose: bool = False,
+    monitoring_config: typing.Optional[str] = None,
+    only_if_package_seen: bool = False,
+    package_names_file: typing.Optional[str] = None,
+    package_names_file_jsonpath: typing.Optional[str] = None,
 ):
     """Check for updates in PyPI RSS feed and add missing entries to the graph database."""
     if ctx:
@@ -252,8 +281,42 @@ def cli(
     _LOGGER.debug("Debug mode turned on")
     _LOGGER.info(f"Package releases version: %r", __version__)
 
+    if package_names_file_jsonpath and not package_names_file:
+        raise ValueError("Cannot use JSON path when no package names file provided")
+
+    if not package_names_file_jsonpath and package_names_file:
+        raise ValueError("JSON path required when obtaining package names from a JSON file")
+
+    if only_if_package_seen and package_names_file:
+        raise ValueError(
+            "Only one of --package-names-file and --only-if-packages-seen is "
+            "allowed method for describing packages to be checked"
+        )
+
+    package_names = None
+    if package_names_file:
+        with open(package_names_file, "r") as f:
+            content = yaml.safe_load(f)
+
+        package_names = []
+        for item in parse(package_names_file_jsonpath).find(content):
+            for entry in item.value:
+                if not isinstance(entry, str):
+                    raise ValueError(f"Found item in the file is not a string describing package name: {item!r}")
+                package_names.append(entry)
+
+        if not package_names:
+            _LOGGER.warning("No packages to be checked for new releases")
+            sys.exit(2)
+
+    # Connect once we really need to.
     graph = GraphDatabase()
     graph.connect()
+
+    if only_if_package_seen:
+        # An optimization - we don't need to iterate over a large set present on index.
+        # Check only packages known to Thoth.
+        package_names = graph.get_python_package_version_entities_names_all()
 
     monitored_packages = None
     if monitoring_config:
@@ -270,13 +333,20 @@ def cli(
             package_releases_update(
                 monitored_packages,
                 graph=graph,
-                only_if_package_seen=only_if_package_seen,
+                package_names=package_names,
             )
     finally:
         if _THOTH_METRICS_PUSHGATEWAY_URL:
             try:
-                _LOGGER.info("Submitting metrics to Prometheus pushgateway %r", _THOTH_METRICS_PUSHGATEWAY_URL)
-                push_to_gateway(_THOTH_METRICS_PUSHGATEWAY_URL, job="package-release", registry=_PROMETHEUS_REGISTRY)
+                _LOGGER.info(
+                    "Submitting metrics to Prometheus pushgateway %r",
+                    _THOTH_METRICS_PUSHGATEWAY_URL,
+                )
+                push_to_gateway(
+                    _THOTH_METRICS_PUSHGATEWAY_URL,
+                    job="package-release",
+                    registry=prometheus_registry,
+                )
             except Exception as exc:
                 _LOGGER.exception("An error occurred pushing the metrics: %s", exc)
 

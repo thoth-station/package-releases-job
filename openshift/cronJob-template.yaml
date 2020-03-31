@@ -12,12 +12,19 @@ metadata:
       This template defines resources needed to deploy Thoth Package
       Releases Job to OpenShift.
     template.openshift.io/provider-display-name: "Red Hat, Inc."
+    thoth-station.ninja/template-version: 0.4.0
   labels:
     template: package-releases-cronjob
     app: thoth
     component: package-releases
 
 parameters:
+  - description: Registry the ImageStream to be used
+    displayName: ImageStream Registry
+    required: true
+    name: IMAGE_STREAM_REGISTRY
+    value: "docker-registry.default.svc:5000"
+
   - displayName: Suspend CronJob run
     description: Suspend CronJob run
     required: true
@@ -42,15 +49,17 @@ objects:
     apiVersion: batch/v1beta1
     metadata:
       name: package-releases
+      annotations:
+        thoth-station.ninja/template-version: 0.4.0
       labels:
         app: thoth
         component: package-releases
     spec:
-      schedule: "@daily"
+      schedule: "0 */12 * * *"
       suspend: ${{THOTH_SUSPEND_JOB}}
       concurrencyPolicy: Forbid
       successfulJobsHistoryLimit: 2
-      startingDeadlineSeconds: 99
+      startingDeadlineSeconds: null
       failedJobsHistoryLimit: 4
       jobTemplate:
         spec:
@@ -61,7 +70,7 @@ objects:
                 component: package-releases
             spec:
               containers:
-                - image: "${IMAGE_STREAM_NAMESPACE}/package-releases-job:${IMAGE_STREAM_TAG}"
+                - image: "${IMAGE_STREAM_REGISTRY}/${IMAGE_STREAM_NAMESPACE}/package-releases-job:${IMAGE_STREAM_TAG}"
                   name: package-releases
                   env:
                     - name: THOTH_PACKAGE_RELEASES_ONLY_IF_PACKAGE_SEEN
@@ -125,4 +134,11 @@ objects:
                     limits:
                       memory: "512Mi"
                       cpu: "500m"
+                  livenessProbe:
+                    failureThreshold: 1
+                    # Give this job 2 hours to finish
+                    initialDelaySeconds: 7200
+                    periodSeconds: 10
+                    tcpSocket:
+                      port: 80
               restartPolicy: OnFailure

@@ -30,11 +30,20 @@ from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
 from jsonpath_ng import parse
 
 from thoth.common import init_logging
-from thoth.common import __version__ as thoth_common_version
 from thoth.python import Source
 from thoth.python.exceptions import NotFound
 from thoth.storages import GraphDatabase
-from thoth.storages import __version__ as thoth_storages_version
+
+from thoth.common import __version__ as __common__version__
+from thoth.common import init_logging
+from thoth.storages import __version__ as __storages__version__
+from thoth.python import __version__ as __python__version__
+
+__version__ = "0.6.0"
+__service_version__ = f"{__version__}+\
+    storages.{__storages__version__}.\
+        common.{__common__version__}.\
+            lab.{__python__version__}"
 
 from thoth.package_release_job import __service_version__
 

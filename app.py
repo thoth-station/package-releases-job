@@ -36,16 +36,13 @@ from thoth.python.exceptions import NotFound
 from thoth.storages import GraphDatabase
 from thoth.storages import __version__ as thoth_storages_version
 
-
-# Reuse thoth-storages version as we rely on it.
-__version__ = (
-    f"0.6.0+thoth_storage.{thoth_storages_version}+thoth_common.{thoth_common_version}"
-)
-
+from thoth.package_release_job import __service_version__
 
 init_logging()
 
 _LOGGER = logging.getLogger("thoth.package_releases")
+_LOGGER.info(f"Thoth package-release-job v%s", __service_version__)
+
 _THOTH_METRICS_PUSHGATEWAY_URL = os.getenv("PROMETHEUS_PUSHGATEWAY_URL")
 _THOTH_DEPLOYMENT_NAME = os.environ["THOTH_DEPLOYMENT_NAME"]
 
@@ -146,7 +143,9 @@ def package_releases_update(
     only_if_package_seen: bool = False,
 ) -> None:
     """Check for updates of packages, notify about updates if configured so."""
-    sources = [Source(**config) for config in graph.get_python_package_index_all(enabled=True)]
+    sources = [
+        Source(**config) for config in graph.get_python_package_index_all(enabled=True)
+    ]
 
     for package_index in sources:
         _LOGGER.info("Checking index %r for new package releases", package_index.url)
@@ -253,7 +252,7 @@ def package_releases_update(
     metavar="FILE.json",
     envvar="THOTH_PACKAGE_RELEASES_PACKAGE_NAMES_FILE",
     help="A path to a JSON file that stores information about package names, "
-         "disjoint with `--only-if-package-seen`.",
+    "disjoint with `--only-if-package-seen`.",
 )
 @click.option(
     "--package-names-file-jsonpath",
@@ -261,7 +260,7 @@ def package_releases_update(
     metavar="JSONPATH",
     envvar="THOTH_PACKAGE_RELEASES_PACKAGE_NAMES_FILE_JSONPATH",
     help="A path to a JSON/YAML file that stores information about package names, "
-         "disjoint with `--only-if-package-seen`.",
+    "disjoint with `--only-if-package-seen`.",
 )
 def cli(
     ctx=None,
@@ -285,7 +284,9 @@ def cli(
         raise ValueError("Cannot use JSON path when no package names file provided")
 
     if not package_names_file_jsonpath and package_names_file:
-        raise ValueError("JSON path required when obtaining package names from a JSON file")
+        raise ValueError(
+            "JSON path required when obtaining package names from a JSON file"
+        )
 
     if only_if_package_seen and package_names_file:
         raise ValueError(
@@ -302,7 +303,9 @@ def cli(
         for item in parse(package_names_file_jsonpath).find(content):
             for entry in item.value:
                 if not isinstance(entry, str):
-                    raise ValueError(f"Found item in the file is not a string describing package name: {item!r}")
+                    raise ValueError(
+                        f"Found item in the file is not a string describing package name: {item!r}"
+                    )
                 package_names.append(entry)
 
         if not package_names:
@@ -331,9 +334,7 @@ def cli(
     try:
         with _METRIC_PACKAGES_RELEASES_TIME.time():
             package_releases_update(
-                monitored_packages,
-                graph=graph,
-                package_names=package_names,
+                monitored_packages, graph=graph, package_names=package_names
             )
     finally:
         if _THOTH_METRICS_PUSHGATEWAY_URL:

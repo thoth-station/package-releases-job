@@ -85,13 +85,13 @@ def _load_package_monitoring_config(config_path: str) -> typing.Optional[dict]:
         _LOGGER.debug(f"Loading remote monitoring config from {config_path}")
         content = requests.get(config_path)
         content.raise_for_status()
-        content = content.text
+        content_info = content.text
     else:
         _LOGGER.debug(f"Loading local monitoring config from {config_path}")
         with open(config_path, "r") as config_file:
-            content = config_file.read()
+            content_info = config_file.read()
 
-    return yaml.safe_load(content)
+    return yaml.safe_load(content_info)
 
 
 def release_notification(
@@ -142,7 +142,7 @@ def release_notification(
 
 
 def package_releases_update(
-    monitored_packages: dict,
+    monitored_packages: typing.Optional[dict],
     *,
     graph: GraphDatabase,
     package_names: typing.Optional[typing.List[str]] = None,

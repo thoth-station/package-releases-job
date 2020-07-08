@@ -68,4 +68,3 @@ prepare the database schema:
 
 Job will talk to your local database instance by default which is located at
 `localhost:5432` by default.
-

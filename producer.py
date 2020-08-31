@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-# thoth-package-releases-job
-# Copyright(C) 2018, 2019, 2020 Fridolin Pokorny
+# thoth-package-releases-job-producer
+# Copyright(C) 2018, 2019, 2020 Fridolin Pokorny, Bissenbay Dauletbayev
 #
 # This program is free software: you can redistribute it and / or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,6 +17,7 @@
 
 """Check for new releases on Python index and mark new packages in the graph database."""
 
+import asyncio
 import sys
 import logging
 import typing
@@ -25,54 +26,43 @@ import os
 import requests
 import yaml
 
-import click
-from prometheus_client import CollectorRegistry, Gauge, push_to_gateway
+from faust import cli
+
 from jsonpath_ng import parse
 
-from thoth.common import init_logging
-from thoth.python import Source
-from thoth.python.exceptions import NotFound
-from thoth.storages import GraphDatabase
+from version import __version__
 
 from thoth.common import __version__ as __common__version__
-from thoth.storages import __version__ as __storages__version__
-from thoth.python import __version__ as __python__version__
+from thoth.common import init_logging
 
-__version__ = "0.6.1"
-__service_version__ = f"{__version__}+\
-    storages.{__storages__version__}.\
-        common.{__common__version__}.\
-            python.{__python__version__}"
+from thoth.storages import __version__ as __storages__version__
+from thoth.storages import GraphDatabase
+
+from thoth.messaging import __version__ as __messaging__version__
+from thoth.messaging import MessageBase
+from thoth.messaging.package_releases import PackageReleaseMessage
+
+from thoth.python import Source
+from thoth.python.exceptions import NotFound
+
 
 init_logging()
+app = MessageBase().app
 
-_LOGGER = logging.getLogger("thoth.package_releases")
-_LOGGER.info(f"Thoth package-release-job v%s", __service_version__)
+_LOGGER = logging.getLogger("thoth.package_releases_job")
+__service_version__ = f"{__version__}+storages.{__storages__version__}.common.{__common__version__}.messaging.{__messaging__version__}"  # noqa: E501
+_LOGGER.info(f"Thoth-package-releases-job-producer v%s", __service_version__)
 
-_THOTH_METRICS_PUSHGATEWAY_URL = os.getenv("PROMETHEUS_PUSHGATEWAY_URL")
 _THOTH_DEPLOYMENT_NAME = os.environ["THOTH_DEPLOYMENT_NAME"]
+COMPONENT_NAME = "thoth-package-releases-job"
 
-prometheus_registry = CollectorRegistry()
-_METRIC_PACKAGES_NEW_AND_ADDED = Gauge(
-    "packages_added", "Packages newly added", registry=prometheus_registry
-)
-_METRIC_PACKAGES_NEW_AND_NOTIFIED = Gauge(
-    "packages_notified",
-    "Packages newly added and notification sent",
-    registry=prometheus_registry,
-)
-_METRIC_PACKAGES_RELEASES_TIME = Gauge(
-    "package_releases_time",
-    "Runtime of package releases job",
-    registry=prometheus_registry,
-)
+async_tasks = []
 
 
 def _print_version(ctx, _, value):
     """Print package releases version and exit."""
     if not value or ctx.resilient_parsing:
         return
-    click.echo(__version__)
     ctx.exit()
 
 
@@ -149,9 +139,12 @@ def package_releases_update(
     only_if_package_seen: bool = False,
 ) -> None:
     """Check for updates of packages, notify about updates if configured so."""
+    global async_tasks
     sources = [
         Source(**config) for config in graph.get_python_package_index_all(enabled=True)
     ]
+
+    package_release = PackageReleaseMessage()
 
     for package_index in sources:
         _LOGGER.info("Checking index %r for new package releases", package_index.url)
@@ -181,6 +174,24 @@ def package_releases_update(
                     package_index.url,
                     only_if_package_seen=only_if_package_seen,
                 )
+                async_tasks.append(
+                    package_release.publish_to_topic(
+                        package_release.MessageContents(
+                            package_name=package_name,
+                            package_version=package_version,
+                            index_url=package_index.url,
+                            component_name=COMPONENT_NAME,
+                            service_version=__service_version__,
+                        )
+                    )
+                )
+                _LOGGER.debug(
+                    "Package %r in version %r hosted on %r was scheduled to be published on topic %r",
+                    package_name,
+                    package_version,
+                    package_index.url,
+                    package_release.topic_name,
+                )
 
                 if added is None:
                     _LOGGER.debug(
@@ -199,7 +210,6 @@ def package_releases_update(
                         package_version,
                         package_index.url,
                     )
-                    _METRIC_PACKAGES_NEW_AND_ADDED.inc()
                 else:
                     _LOGGER.debug(
                         "Release of %r in version %r hosted on %r already present",
@@ -217,7 +227,6 @@ def package_releases_update(
                             entity.package_version,
                             package_index.url,
                         )
-                        _METRIC_PACKAGES_NEW_AND_NOTIFIED.inc()
                     except Exception as exc:
                         _LOGGER.exception(
                             f"Failed to do release notification for {package_name} ({package_version} "
@@ -225,50 +234,52 @@ def package_releases_update(
                         )
 
 
-@click.command()
-@click.pass_context
-@click.option("-v", "--verbose", is_flag=True, help="Be verbose about what's going on.")
-@click.option(
-    "--version",
-    is_flag=True,
-    is_eager=True,
-    callback=_print_version,
-    expose_value=False,
-    help="Print version and exit.",
+@app.command(
+    cli.option(
+        "-v", "--verbose", is_flag=True, help="Be verbose about what's going on."
+    ),
+    cli.option(
+        "--version",
+        is_flag=True,
+        is_eager=True,
+        callback=_print_version,
+        expose_value=False,
+        help="Print version and exit.",
+    ),
+    cli.option(
+        "--monitoring-config",
+        "-m",
+        type=str,
+        show_default=True,
+        metavar="CONFIG",
+        envvar="THOTH_PACKAGE_RELEASES_MONITORING_CONFIG",
+        help="A filesystem path or an URL to monitoring configuration file.",
+    ),
+    cli.option(
+        "--only-if-package-seen",
+        is_flag=True,
+        envvar="THOTH_PACKAGE_RELEASES_ONLY_IF_PACKAGE_SEEN",
+        help="Create entries only for packages for which entries already exist in the graph database.",
+    ),
+    cli.option(
+        "--package-names-file",
+        "-f",
+        type=str,
+        metavar="FILE.json",
+        envvar="THOTH_PACKAGE_RELEASES_PACKAGE_NAMES_FILE",
+        help="A path to a JSON file that stores information about package names, "
+        "disjoint with `--only-if-package-seen`.",
+    ),
+    cli.option(
+        "--package-names-file-jsonpath",
+        type=str,
+        metavar="JSONPATH",
+        envvar="THOTH_PACKAGE_RELEASES_PACKAGE_NAMES_FILE_JSONPATH",
+        help="A path to a JSON/YAML file that stores information about package names, "
+        "disjoint with `--only-if-package-seen`.",
+    ),
 )
-@click.option(
-    "--monitoring-config",
-    "-m",
-    type=str,
-    show_default=True,
-    metavar="CONFIG",
-    envvar="THOTH_PACKAGE_RELEASES_MONITORING_CONFIG",
-    help="A filesystem path or an URL to monitoring configuration file.",
-)
-@click.option(
-    "--only-if-package-seen",
-    is_flag=True,
-    envvar="THOTH_PACKAGE_RELEASES_ONLY_IF_PACKAGE_SEEN",
-    help="Create entries only for packages for which entries already exist in the graph database.",
-)
-@click.option(
-    "--package-names-file",
-    "-f",
-    type=str,
-    metavar="FILE.json",
-    envvar="THOTH_PACKAGE_RELEASES_PACKAGE_NAMES_FILE",
-    help="A path to a JSON file that stores information about package names, "
-    "disjoint with `--only-if-package-seen`.",
-)
-@click.option(
-    "--package-names-file-jsonpath",
-    type=str,
-    metavar="JSONPATH",
-    envvar="THOTH_PACKAGE_RELEASES_PACKAGE_NAMES_FILE_JSONPATH",
-    help="A path to a JSON/YAML file that stores information about package names, "
-    "disjoint with `--only-if-package-seen`.",
-)
-def cli(
+async def main(
     ctx=None,
     verbose: bool = False,
     monitoring_config: typing.Optional[str] = None,
@@ -337,26 +348,8 @@ def cli(
             )
             raise
 
-    try:
-        with _METRIC_PACKAGES_RELEASES_TIME.time():
-            package_releases_update(
-                monitored_packages, graph=graph, package_names=package_names
-            )
-    finally:
-        if _THOTH_METRICS_PUSHGATEWAY_URL:
-            try:
-                _LOGGER.info(
-                    "Submitting metrics to Prometheus pushgateway %r",
-                    _THOTH_METRICS_PUSHGATEWAY_URL,
-                )
-                push_to_gateway(
-                    _THOTH_METRICS_PUSHGATEWAY_URL,
-                    job="package-release",
-                    registry=prometheus_registry,
-                )
-            except Exception as exc:
-                _LOGGER.exception("An error occurred pushing the metrics: %s", exc)
+    package_releases_update(
+        monitored_packages, graph=graph, package_names=package_names
+    )
 
-
-if __name__ == "__main__":
-    cli()
+    await asyncio.gather(*async_tasks)

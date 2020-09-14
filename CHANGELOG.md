@@ -427,3 +427,22 @@ Set resource limits of BuildConfig and Deployment to reasonable values, this wil
 - Simplify structure to comply s2i app.py
 - Add s2i configuration
 - Initial project import
+
+## Release 0.7.0 (2020-09-14T17:03:35)
+### Features
+* Add maintainer (#451)
+* make package-release-job a producer (#449)
+* enable pre-commit support for the application (#421)
+* Remove latest versions limitation (#434)
+* migrate manifest for the application to config app (#423)
+### Automatic Updates
+* :pushpin: Automatic update of dependency pytest from 6.0.0rc1 to 6.0.1 (#445)
+* :pushpin: Automatic update of dependency pytest from 6.0.0rc1 to 6.0.1 (#444)
+* :pushpin: Automatic update of dependency thoth-python from 0.10.0 to 0.10.1 (#443)
+* :pushpin: Automatic update of dependency thoth-common from 0.14.2 to 0.16.1 (#442)
+* :pushpin: Automatic update of dependency thoth-storages from 0.24.4 to 0.25.3 (#441)
+* :pushpin: Automatic update of dependency pytest from 5.4.3 to 6.0.0rc1 (#439)
+* :pushpin: Automatic update of dependency pytest from 5.4.3 to 6.0.0rc1 (#438)
+* :pushpin: Automatic update of dependency thoth-common from 0.14.1 to 0.14.2 (#437)
+* :pushpin: Automatic update of dependency thoth-common from 0.14.1 to 0.14.2 (#436)
+* :pushpin: Automatic update of dependency thoth-storages from 0.24.0 to 0.24.4 (#435)

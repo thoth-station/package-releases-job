@@ -888,3 +888,14 @@ Set resource limits of BuildConfig and Deployment to reasonable values, this wil
 * :pushpin: Automatic update of dependency thoth-common from 0.18.3 to 0.19.0 (#461)
 * :pushpin: Automatic update of dependency thoth-storages from 0.25.8 to 0.25.9 (#460)
 * :pushpin: Automatic update of dependency thoth-storages from 0.25.8 to 0.25.9 (#459)
+
+## Release 0.8.2 (2020-09-16T15:40:41)
+### Features
+* :ship: enable aicoe-ci to build and deploy
+### Improvements
+* make app.sh executable
+### Automatic Updates
+* :pushpin: Automatic update of dependency thoth-storages from 0.25.9 to 0.25.10 (#473)
+* :pushpin: Automatic update of dependency thoth-storages from 0.25.9 to 0.25.10 (#472)
+* :pushpin: Automatic update of dependency thoth-messaging from 0.7.0 to 0.7.2 (#468)
+* :pushpin: Automatic update of dependency thoth-messaging from 0.7.0 to 0.7.2 (#467)

@@ -40,7 +40,7 @@ from thoth.storages import GraphDatabase
 
 from thoth.messaging import __version__ as __messaging__version__
 from thoth.messaging import MessageBase
-from thoth.messaging.package_releases import PackageReleaseMessage
+from thoth.messaging.package_releases import PackageReleasedMessage
 
 from thoth.python import Source
 from thoth.python.exceptions import NotFound
@@ -144,7 +144,7 @@ def package_releases_update(
         Source(**config) for config in graph.get_python_package_index_all(enabled=True)
     ]
 
-    package_release = PackageReleaseMessage()
+    package_release = PackageReleasedMessage()
 
     for package_index in sources:
         _LOGGER.info("Checking index %r for new package releases", package_index.url)

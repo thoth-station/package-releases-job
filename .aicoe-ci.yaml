@@ -1,0 +1,15 @@
+check:
+  - thoth-precommit
+  - thoth-build
+build:
+  base-image: quay.io/thoth-station/s2i-thoth-ubi8-py36:v0.14.0
+  build-stratergy: Source
+  registry: "quay.io"
+  registry-org: "thoth-station"
+  registry-project: "package-releases-job"
+  registry-secret: "thoth-station-thoth-pusher-secret"
+deploy:
+  project-org: "thoth-station"
+  project-name: "thoth-application"
+  image-name: "package-releases-job"
+  overlay-contextpath: "package-releases/overlays/test/imagestreamtag.yaml"

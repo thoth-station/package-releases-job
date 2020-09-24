@@ -4,19 +4,16 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-click = "*"
+faust = "*"
 requests = "*"
-prometheus-client = "*"
 pyyaml = "*"
 thoth-storages = "*"
 thoth-common = "*"
 thoth-python = "*"
+thoth-messaging = "*"
 jsonpath-ng = "*"
 
 [dev-packages]
-coala = "*"
-coala-bears = "*"
-black = "*"
 pytest = "*"
 
 [requires]

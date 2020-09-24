@@ -236,7 +236,11 @@ def package_releases_update(
 
 @app.command(
     cli.option(
-        "-v", "--verbose", is_flag=True, help="Be verbose about what's going on."
+        "-v",
+        "--verbose",
+        is_flag=True,
+        envvar="THOTH_PACKAGE_RELEASES_DEBUG",
+        help="Be verbose about what's going on.",
     ),
     cli.option(
         "--version",

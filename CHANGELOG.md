@@ -913,3 +913,11 @@ Set resource limits of BuildConfig and Deployment to reasonable values, this wil
 ### Automatic Updates
 * :pushpin: Automatic update of dependency thoth-storages from 0.25.10 to 0.25.11 (#486)
 * :pushpin: Automatic update of dependency thoth-storages from 0.25.10 to 0.25.11 (#485)
+
+## Release 0.8.5 (2020-09-24T16:10:19)
+### Features
+* Be verbose (#493)
+### Automatic Updates
+* :pushpin: Automatic update of dependency thoth-python from 0.10.1 to 0.10.2 (#491)
+* :pushpin: Automatic update of dependency thoth-python from 0.10.1 to 0.10.2 (#490)
+* :pushpin: Automatic update of dependency thoth-common from 0.19.0 to 0.20.0 (#489)

@@ -135,7 +135,7 @@ def package_releases_update(
     graph: GraphDatabase,
     package_names: typing.Optional[typing.List[str]] = None,
     only_if_package_seen: bool = False,
-) -> None:
+) -> typing.List[MessageBase]:
     """Check for updates of packages, notify about updates if configured so."""
     async_tasks = []
     sources = [

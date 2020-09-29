@@ -355,7 +355,10 @@ async def main(
             raise
 
     async_tasks = package_releases_update(
-        monitored_packages, graph=graph, package_names=package_names, only_if_package_seen=only_if_package_seen
+        monitored_packages,
+        graph=graph,
+        package_names=package_names,
+        only_if_package_seen=only_if_package_seen,
     )
     _LOGGER.info("Package releases will send: %r messages", len(async_tasks))
 

@@ -48,7 +48,6 @@ from thoth.python.exceptions import NotFound
 
 app = MessageBase().app
 
-init_logging()
 _LOGGER = logging.getLogger("thoth.package_releases_job")
 __service_version__ = f"{__version__}+storages.{__storages__version__}.common.{__common__version__}.messaging.{__messaging__version__}"  # noqa: E501
 _LOGGER.info(f"Thoth-package-releases-job-producer v%s", __service_version__)
@@ -294,6 +293,7 @@ async def main(
     package_names_file_jsonpath: typing.Optional[str] = None,
 ):
     """Check for updates in PyPI RSS feed and add missing entries to the graph database."""
+    init_logging()
     if ctx:
         ctx.auto_envvar_prefix = "THOTH_PACKAGE_RELEASES"
 
@@ -355,7 +355,11 @@ async def main(
             raise
 
     async_tasks = package_releases_update(
-        monitored_packages, graph=graph, package_names=package_names
+        monitored_packages,
+        graph=graph,
+        package_names=package_names,
+        only_if_package_seen=only_if_package_seen,
     )
+    _LOGGER.info("Package releases will send: %r messages", len(async_tasks))
 
     await asyncio.gather(*async_tasks)

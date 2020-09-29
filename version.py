@@ -17,4 +17,4 @@
 
 """This file carries the version of the package releases job."""
 
-__version__ = "0.8.6"
+__version__ = "0.8.7"

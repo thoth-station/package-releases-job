@@ -46,17 +46,15 @@ from thoth.python import Source
 from thoth.python.exceptions import NotFound
 
 
-init_logging()
 app = MessageBase().app
 
+init_logging()
 _LOGGER = logging.getLogger("thoth.package_releases_job")
 __service_version__ = f"{__version__}+storages.{__storages__version__}.common.{__common__version__}.messaging.{__messaging__version__}"  # noqa: E501
 _LOGGER.info(f"Thoth-package-releases-job-producer v%s", __service_version__)
 
 _THOTH_DEPLOYMENT_NAME = os.environ["THOTH_DEPLOYMENT_NAME"]
 COMPONENT_NAME = "thoth-package-releases-job"
-
-async_tasks = []
 
 
 def _print_version(ctx, _, value):
@@ -137,9 +135,9 @@ def package_releases_update(
     graph: GraphDatabase,
     package_names: typing.Optional[typing.List[str]] = None,
     only_if_package_seen: bool = False,
-) -> None:
+) -> typing.List[MessageBase]:
     """Check for updates of packages, notify about updates if configured so."""
-    global async_tasks
+    async_tasks = []
     sources = [
         Source(**config) for config in graph.get_python_package_index_all(enabled=True)
     ]
@@ -174,24 +172,6 @@ def package_releases_update(
                     package_index.url,
                     only_if_package_seen=only_if_package_seen,
                 )
-                async_tasks.append(
-                    package_release.publish_to_topic(
-                        package_release.MessageContents(
-                            package_name=package_name,
-                            package_version=package_version,
-                            index_url=package_index.url,
-                            component_name=COMPONENT_NAME,
-                            service_version=__service_version__,
-                        )
-                    )
-                )
-                _LOGGER.debug(
-                    "Package %r in version %r hosted on %r was scheduled to be published on topic %r",
-                    package_name,
-                    package_version,
-                    package_index.url,
-                    package_release.topic_name,
-                )
 
                 if added is None:
                     _LOGGER.debug(
@@ -210,6 +190,26 @@ def package_releases_update(
                         package_version,
                         package_index.url,
                     )
+
+                    async_tasks.append(
+                        package_release.publish_to_topic(
+                            package_release.MessageContents(
+                                package_name=package_name,
+                                package_version=package_version,
+                                index_url=package_index.url,
+                                component_name=COMPONENT_NAME,
+                                service_version=__service_version__,
+                            )
+                        )
+                    )
+                    _LOGGER.debug(
+                        "Package %r in version %r hosted on %r added to list to be sent as Kafka message %r",
+                        package_name,
+                        package_version,
+                        package_index.url,
+                        package_release.topic_name,
+                    )
+
                 else:
                     _LOGGER.debug(
                         "Release of %r in version %r hosted on %r already present",
@@ -232,6 +232,8 @@ def package_releases_update(
                             f"Failed to do release notification for {package_name} ({package_version} "
                             f"from {package_index.url}), error is not fatal: {str(exc)}"
                         )
+
+    return async_tasks
 
 
 @app.command(
@@ -352,7 +354,7 @@ async def main(
             )
             raise
 
-    package_releases_update(
+    async_tasks = package_releases_update(
         monitored_packages, graph=graph, package_names=package_names
     )
 

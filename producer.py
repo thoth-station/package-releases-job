@@ -48,7 +48,6 @@ from thoth.python.exceptions import NotFound
 
 app = MessageBase().app
 
-init_logging()
 _LOGGER = logging.getLogger("thoth.package_releases_job")
 __service_version__ = f"{__version__}+storages.{__storages__version__}.common.{__common__version__}.messaging.{__messaging__version__}"  # noqa: E501
 _LOGGER.info(f"Thoth-package-releases-job-producer v%s", __service_version__)
@@ -357,5 +356,4 @@ async def main(
     async_tasks = package_releases_update(
         monitored_packages, graph=graph, package_names=package_names
     )
-
     await asyncio.gather(*async_tasks)

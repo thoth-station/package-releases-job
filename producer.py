@@ -293,6 +293,7 @@ async def main(
     package_names_file_jsonpath: typing.Optional[str] = None,
 ):
     """Check for updates in PyPI RSS feed and add missing entries to the graph database."""
+    init_logging()
     if ctx:
         ctx.auto_envvar_prefix = "THOTH_PACKAGE_RELEASES"
 
@@ -356,4 +357,6 @@ async def main(
     async_tasks = package_releases_update(
         monitored_packages, graph=graph, package_names=package_names
     )
+    _LOGGER.info("Package releases will send: %r messages", len(async_tasks))
+
     await asyncio.gather(*async_tasks)

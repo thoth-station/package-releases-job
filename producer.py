@@ -203,7 +203,7 @@ def package_releases_update(
                         )
                     )
                     _LOGGER.debug(
-                        "Package %r in version %r hosted on %r was scheduled to be published on topic %r",
+                        "Package %r in version %r hosted on %r added to list to be sent as Kafka message %r",
                         package_name,
                         package_version,
                         package_index.url,

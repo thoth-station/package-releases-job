@@ -921,3 +921,9 @@ Set resource limits of BuildConfig and Deployment to reasonable values, this wil
 * :pushpin: Automatic update of dependency thoth-python from 0.10.1 to 0.10.2 (#491)
 * :pushpin: Automatic update of dependency thoth-python from 0.10.1 to 0.10.2 (#490)
 * :pushpin: Automatic update of dependency thoth-common from 0.19.0 to 0.20.0 (#489)
+
+## Release 0.8.6 (2020-09-29T08:04:23)
+### Bug Fixes
+* Send message only of packages that do not exist, not all. (#496)
+### Automatic Updates
+* :pushpin: Automatic update of dependency thoth-messaging from 0.7.6 to 0.7.7 (#499)

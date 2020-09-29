@@ -927,3 +927,12 @@ Set resource limits of BuildConfig and Deployment to reasonable values, this wil
 * Send message only of packages that do not exist, not all. (#496)
 ### Automatic Updates
 * :pushpin: Automatic update of dependency thoth-messaging from 0.7.6 to 0.7.7 (#499)
+
+## Release 0.8.7 (2020-09-29T10:09:23)
+### Bug Fixes
+* Show logging and solve bug in package-release logic (#503)
+### Automatic Updates
+* :pushpin: Automatic update of dependency thoth-messaging from 0.7.7 to 0.7.8 (#507)
+* :pushpin: Automatic update of dependency thoth-storages from 0.25.12 to 0.25.13 (#506)
+* :pushpin: Automatic update of dependency thoth-storages from 0.25.12 to 0.25.13 (#505)
+* :pushpin: Automatic update of dependency thoth-storages from 0.25.11 to 0.25.12 (#502)

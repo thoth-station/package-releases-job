@@ -12,6 +12,7 @@ thoth-common = "*"
 thoth-python = "*"
 thoth-messaging = "*"
 jsonpath-ng = "*"
+prometheus-client = "*"
 
 [dev-packages]
 pytest = "*"

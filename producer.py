@@ -156,7 +156,7 @@ def package_releases_update(
     graph: GraphDatabase,
     package_names: typing.Optional[typing.List[str]] = None,
     only_if_package_seen: bool = False,
-) -> typing.List[MessageBase]:
+) -> Tuple[typing.List[MessageBase], int]:
     """Check for updates of packages, notify about updates if configured so."""
     async_tasks = []
     sources = [
@@ -255,13 +255,7 @@ def package_releases_update(
                             f"from {package_index.url}), error is not fatal: {str(exc)}"
                         )
 
-    _METRIC_MESSSAGES_SENT.labels(
-        message_type=PackageReleasedMessage.topic_name,
-        env=_THOTH_DEPLOYMENT_NAME,
-        version=__service_version__,
-    ).inc(package_releases_messages_sent)
-
-    return async_tasks
+    return async_tasks, package_releases_messages_sent
 
 
 @app.command(
@@ -383,12 +377,22 @@ async def main(
             )
             raise
 
-    async_tasks = package_releases_update(
+    async_tasks, package_releases_messages_sent = package_releases_update(
         monitored_packages,
         graph=graph,
         package_names=package_names,
         only_if_package_seen=only_if_package_seen,
     )
+
+    _LOGGER.info("Package releases will send: %r messages", len(async_tasks))
+
+    await asyncio.gather(*async_tasks)
+
+    _METRIC_MESSSAGES_SENT.labels(
+        message_type=PackageReleasedMessage.topic_name,
+        env=_THOTH_DEPLOYMENT_NAME,
+        version=__service_version__,
+    ).inc(package_releases_messages_sent)
 
     if _THOTH_METRICS_PUSHGATEWAY_URL:
         try:
@@ -402,7 +406,3 @@ async def main(
             )
         except Exception as e:
             _LOGGER.exception(f"An error occurred pushing the metrics: {str(e)}")
-
-    _LOGGER.info("Package releases will send: %r messages", len(async_tasks))
-
-    await asyncio.gather(*async_tasks)

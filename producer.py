@@ -163,7 +163,7 @@ def package_releases_update(
     ]
 
     package_release = PackageReleasedMessage()
-    package_release_sent = 0
+    package_releases_messages_sent = 0
 
     for package_index in sources:
         _LOGGER.info("Checking index %r for new package releases", package_index.url)
@@ -230,7 +230,7 @@ def package_releases_update(
                         package_index.url,
                         package_release.topic_name,
                     )
-                    package_release_sent += 1
+                    package_releases_messages_sent += 1
                 else:
                     _LOGGER.debug(
                         "Release of %r in version %r hosted on %r already present",

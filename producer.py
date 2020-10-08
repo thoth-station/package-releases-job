@@ -62,14 +62,14 @@ COMPONENT_NAME = "thoth-package-releases-job"
 
 # Metrics Exporter Metrics
 _METRIC_INFO = Gauge(
-    "thoth_package-releases-job_info",
+    "thoth_package_release_job_info",
     "Thoth Package Release Producer information",
     ["env", "version"],
     registry=prometheus_registry,
 )
 
 _METRIC_MESSSAGES_SENT = Counter(
-    "thoth_package-releases-job_messages_sent",
+    "thoth_package_release_job_messages_sent",
     "Thoth Package Release Producer information sent",
     ["message_type", "env", "version"],
     registry=prometheus_registry,

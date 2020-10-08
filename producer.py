@@ -77,6 +77,7 @@ _METRIC_MESSSAGES_SENT = Counter(
 
 _METRIC_INFO.labels(_THOTH_DEPLOYMENT_NAME, __service_version__).inc()
 
+
 def _print_version(ctx, _, value):
     """Print package releases version and exit."""
     if not value or ctx.resilient_parsing:
@@ -253,6 +254,12 @@ def package_releases_update(
                             f"Failed to do release notification for {package_name} ({package_version} "
                             f"from {package_index.url}), error is not fatal: {str(exc)}"
                         )
+
+    _METRIC_MESSSAGES_SENT.labels(
+        message_type=PackageReleasedMessage.topic_name,
+        env=_THOTH_DEPLOYMENT_NAME,
+        version=__service_version__,
+    ).inc(package_releases_messages_sent)
 
     return async_tasks
 

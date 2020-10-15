@@ -10,7 +10,7 @@ pyyaml = "*"
 thoth-storages = "*"
 thoth-common = "*"
 thoth-python = "*"
-thoth-messaging = "*"
+thoth-messaging = "==0.7.13"
 jsonpath-ng = "*"
 prometheus-client = "*"
 

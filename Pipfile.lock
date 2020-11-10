@@ -848,11 +848,11 @@
         },
         "thoth-common": {
             "hashes": [
-                "sha256:5bfaa82427d7ed0657517e1209583284d85e53c960f08ad61e98fa3295538427",
-                "sha256:b6af7d51257bd61586b6cd8bc5323e8b9b5ace4ab1d35ccf1456d4e8474aa835"
+                "sha256:60b8fbc334f922333631e0e7ea5a90d3552fc518a48805eaf2401d6be1a1accb",
+                "sha256:c9dd11914f54fe9e186d858b9924ca158fb9e0caffd8be803bb6bb7d388bc10b"
             ],
             "index": "pypi",
-            "version": "==0.20.1"
+            "version": "==0.20.4"
         },
         "thoth-messaging": {
             "hashes": [

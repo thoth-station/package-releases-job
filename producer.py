@@ -42,9 +42,12 @@ from thoth.messaging import __version__ as __messaging__version__
 from thoth.messaging import MessageBase
 from thoth.messaging.package_releases import PackageReleasedMessage
 
+from prometheus_client import CollectorRegistry, Gauge, Counter, push_to_gateway
+
 from thoth.python import Source
 from thoth.python.exceptions import NotFound
 
+prometheus_registry = CollectorRegistry()
 
 app = MessageBase().app
 
@@ -53,7 +56,26 @@ __service_version__ = f"{__version__}+storages.{__storages__version__}.common.{_
 _LOGGER.info(f"Thoth-package-releases-job-producer v%s", __service_version__)
 
 _THOTH_DEPLOYMENT_NAME = os.environ["THOTH_DEPLOYMENT_NAME"]
+_THOTH_METRICS_PUSHGATEWAY_URL = os.getenv("PROMETHEUS_PUSHGATEWAY_URL")
+
 COMPONENT_NAME = "thoth-package-releases-job"
+
+# Metrics Exporter Metrics
+_METRIC_INFO = Gauge(
+    "thoth_package_release_job_info",
+    "Thoth Package Release Producer information",
+    ["env", "version"],
+    registry=prometheus_registry,
+)
+
+_METRIC_MESSSAGES_SENT = Counter(
+    "thoth_package_release_job_messages_sent",
+    "Thoth Package Release Producer information sent",
+    ["message_type", "env", "version"],
+    registry=prometheus_registry,
+)
+
+_METRIC_INFO.labels(_THOTH_DEPLOYMENT_NAME, __service_version__).inc()
 
 
 def _print_version(ctx, _, value):
@@ -134,7 +156,7 @@ def package_releases_update(
     graph: GraphDatabase,
     package_names: typing.Optional[typing.List[str]] = None,
     only_if_package_seen: bool = False,
-) -> typing.List[MessageBase]:
+) -> typing.Tuple[typing.List[MessageBase], int]:
     """Check for updates of packages, notify about updates if configured so."""
     async_tasks = []
     sources = [
@@ -142,6 +164,7 @@ def package_releases_update(
     ]
 
     package_release = PackageReleasedMessage()
+    package_releases_messages_sent = 0
 
     for package_index in sources:
         _LOGGER.info("Checking index %r for new package releases", package_index.url)
@@ -208,7 +231,7 @@ def package_releases_update(
                         package_index.url,
                         package_release.topic_name,
                     )
-
+                    package_releases_messages_sent += 1
                 else:
                     _LOGGER.debug(
                         "Release of %r in version %r hosted on %r already present",
@@ -232,7 +255,7 @@ def package_releases_update(
                             f"from {package_index.url}), error is not fatal: {str(exc)}"
                         )
 
-    return async_tasks
+    return async_tasks, package_releases_messages_sent
 
 
 @app.command(
@@ -354,12 +377,32 @@ async def main(
             )
             raise
 
-    async_tasks = package_releases_update(
+    async_tasks, package_releases_messages_sent = package_releases_update(
         monitored_packages,
         graph=graph,
         package_names=package_names,
         only_if_package_seen=only_if_package_seen,
     )
+
     _LOGGER.info("Package releases will send: %r messages", len(async_tasks))
 
     await asyncio.gather(*async_tasks)
+
+    _METRIC_MESSSAGES_SENT.labels(
+        message_type=PackageReleasedMessage.topic_name,
+        env=_THOTH_DEPLOYMENT_NAME,
+        version=__service_version__,
+    ).inc(package_releases_messages_sent)
+
+    if _THOTH_METRICS_PUSHGATEWAY_URL:
+        try:
+            _LOGGER.debug(
+                f"Submitting metrics to Prometheus pushgateway {_THOTH_METRICS_PUSHGATEWAY_URL}"
+            )
+            push_to_gateway(
+                _THOTH_METRICS_PUSHGATEWAY_URL,
+                job="package-releases",
+                registry=prometheus_registry,
+            )
+        except Exception as e:
+            _LOGGER.exception(f"An error occurred pushing the metrics: {str(e)}")

@@ -17,18 +17,17 @@
 
 """Check for new releases on Python index and mark new packages in the graph database."""
 
-import asyncio
 import sys
 import logging
-import typing
+from typing import Dict, Optional, Any, List
 
 import os
 import requests
 import yaml
 
-from faust import cli
-
 from jsonpath_ng import parse
+
+import click as cli
 
 from version import __version__
 
@@ -39,7 +38,7 @@ from thoth.storages import __version__ as __storages__version__
 from thoth.storages import GraphDatabase
 
 from thoth.messaging import __version__ as __messaging__version__
-from thoth.messaging import MessageBase
+import thoth.messaging.producer as producer
 from thoth.messaging.package_releases import PackageReleasedMessage
 
 from prometheus_client import CollectorRegistry, Gauge, Counter, push_to_gateway
@@ -47,13 +46,15 @@ from prometheus_client import CollectorRegistry, Gauge, Counter, push_to_gateway
 from thoth.python import Source
 from thoth.python.exceptions import NotFound
 
+init_logging()
+
 prometheus_registry = CollectorRegistry()
 
-app = MessageBase().app
+p = producer.create_producer()
 
 _LOGGER = logging.getLogger("thoth.package_releases_job")
 __service_version__ = f"{__version__}+storages.{__storages__version__}.common.{__common__version__}.messaging.{__messaging__version__}"  # noqa: E501
-_LOGGER.info(f"Thoth-package-releases-job-producer v%s", __service_version__)
+_LOGGER.info("Thoth-package-releases-job-producer v%s", __service_version__)
 
 _THOTH_DEPLOYMENT_NAME = os.environ["THOTH_DEPLOYMENT_NAME"]
 _THOTH_METRICS_PUSHGATEWAY_URL = os.getenv("PROMETHEUS_PUSHGATEWAY_URL")
@@ -78,14 +79,14 @@ _METRIC_MESSSAGES_SENT = Counter(
 _METRIC_INFO.labels(_THOTH_DEPLOYMENT_NAME, __service_version__).inc()
 
 
-def _print_version(ctx, _, value):
+def _print_version(ctx, _, value) -> None:
     """Print package releases version and exit."""
     if not value or ctx.resilient_parsing:
         return
     ctx.exit()
 
 
-def _load_package_monitoring_config(config_path: str) -> typing.Optional[dict]:
+def _load_package_monitoring_config(config_path: str) -> Optional[Dict[Any, Any]]:
     """Load package monitoring configuration, retrieve it from a remote HTTP server if needed."""
     if not config_path:
         return None
@@ -151,14 +152,13 @@ def release_notification(
 
 
 def package_releases_update(
-    monitored_packages: typing.Optional[dict],
+    monitored_packages: Optional[dict],
     *,
     graph: GraphDatabase,
-    package_names: typing.Optional[typing.List[str]] = None,
+    package_names: Optional[List[str]] = None,
     only_if_package_seen: bool = False,
-) -> typing.Tuple[typing.List[MessageBase], int]:
+) -> int:
     """Check for updates of packages, notify about updates if configured so."""
-    async_tasks = []
     sources = [
         Source(**config) for config in graph.get_python_package_index_all(enabled=True)
     ]
@@ -213,17 +213,18 @@ def package_releases_update(
                         package_index.url,
                     )
 
-                    async_tasks.append(
-                        package_release.publish_to_topic(
-                            package_release.MessageContents(
-                                package_name=package_name,
-                                package_version=package_version,
-                                index_url=package_index.url,
-                                component_name=COMPONENT_NAME,
-                                service_version=__service_version__,
-                            )
-                        )
+                    producer.publish_to_topic(
+                        p,
+                        PackageReleasedMessage(),
+                        PackageReleasedMessage.MessageContents(
+                            package_name=package_name,
+                            package_version=package_version,
+                            index_url=package_index.url,
+                            component_name=COMPONENT_NAME,
+                            service_version=__service_version__,
+                        ),
                     )
+
                     _LOGGER.debug(
                         "Package %r in version %r hosted on %r added to list to be sent as Kafka message %r",
                         package_name,
@@ -255,68 +256,66 @@ def package_releases_update(
                             f"from {package_index.url}), error is not fatal: {str(exc)}"
                         )
 
-    return async_tasks, package_releases_messages_sent
+    return package_releases_messages_sent
 
 
-@app.command(
-    cli.option(
-        "-v",
-        "--verbose",
-        is_flag=True,
-        envvar="THOTH_PACKAGE_RELEASES_DEBUG",
-        help="Be verbose about what's going on.",
-    ),
-    cli.option(
-        "--version",
-        is_flag=True,
-        is_eager=True,
-        callback=_print_version,
-        expose_value=False,
-        help="Print version and exit.",
-    ),
-    cli.option(
-        "--monitoring-config",
-        "-m",
-        type=str,
-        show_default=True,
-        metavar="CONFIG",
-        envvar="THOTH_PACKAGE_RELEASES_MONITORING_CONFIG",
-        help="A filesystem path or an URL to monitoring configuration file.",
-    ),
-    cli.option(
-        "--only-if-package-seen",
-        is_flag=True,
-        envvar="THOTH_PACKAGE_RELEASES_ONLY_IF_PACKAGE_SEEN",
-        help="Create entries only for packages for which entries already exist in the graph database.",
-    ),
-    cli.option(
-        "--package-names-file",
-        "-f",
-        type=str,
-        metavar="FILE.json",
-        envvar="THOTH_PACKAGE_RELEASES_PACKAGE_NAMES_FILE",
-        help="A path to a JSON file that stores information about package names, "
-        "disjoint with `--only-if-package-seen`.",
-    ),
-    cli.option(
-        "--package-names-file-jsonpath",
-        type=str,
-        metavar="JSONPATH",
-        envvar="THOTH_PACKAGE_RELEASES_PACKAGE_NAMES_FILE_JSONPATH",
-        help="A path to a JSON/YAML file that stores information about package names, "
-        "disjoint with `--only-if-package-seen`.",
-    ),
+@cli.command()
+@cli.option(
+    "-v",
+    "--verbose",
+    is_flag=True,
+    envvar="THOTH_PACKAGE_RELEASES_DEBUG",
+    help="Be verbose about what's going on.",
 )
-async def main(
+@cli.option(
+    "--version",
+    is_flag=True,
+    is_eager=True,
+    callback=_print_version,
+    expose_value=False,
+    help="Print version and exit.",
+)
+@cli.option(
+    "--monitoring-config",
+    "-m",
+    type=str,
+    show_default=True,
+    metavar="CONFIG",
+    envvar="THOTH_PACKAGE_RELEASES_MONITORING_CONFIG",
+    help="A filesystem path or an URL to monitoring configuration file.",
+)
+@cli.option(
+    "--only-if-package-seen",
+    is_flag=True,
+    envvar="THOTH_PACKAGE_RELEASES_ONLY_IF_PACKAGE_SEEN",
+    help="Create entries only for packages for which entries already exist in the graph database.",
+)
+@cli.option(
+    "--package-names-file",
+    "-f",
+    type=str,
+    metavar="FILE.json",
+    envvar="THOTH_PACKAGE_RELEASES_PACKAGE_NAMES_FILE",
+    help="A path to a JSON file that stores information about package names, "
+    "disjoint with `--only-if-package-seen`.",
+)
+@cli.option(
+    "--package-names-file-jsonpath",
+    type=str,
+    metavar="JSONPATH",
+    envvar="THOTH_PACKAGE_RELEASES_PACKAGE_NAMES_FILE_JSONPATH",
+    help="A path to a JSON/YAML file that stores information about package names, "
+    "disjoint with `--only-if-package-seen`.",
+)
+def main(
     ctx=None,
     verbose: bool = False,
-    monitoring_config: typing.Optional[str] = None,
+    monitoring_config: Optional[str] = None,
     only_if_package_seen: bool = False,
-    package_names_file: typing.Optional[str] = None,
-    package_names_file_jsonpath: typing.Optional[str] = None,
+    package_names_file: Optional[str] = None,
+    package_names_file_jsonpath: Optional[str] = None,
 ):
     """Check for updates in PyPI RSS feed and add missing entries to the graph database."""
-    init_logging()
     if ctx:
         ctx.auto_envvar_prefix = "THOTH_PACKAGE_RELEASES"
 
@@ -324,7 +323,7 @@ async def main(
         _LOGGER.setLevel(logging.DEBUG)
 
     _LOGGER.debug("Debug mode turned on")
-    _LOGGER.info(f"Package releases version: %r", __version__)
+    _LOGGER.info("Package releases version: %r", __version__)
 
     if package_names_file_jsonpath and not package_names_file:
         raise ValueError("Cannot use JSON path when no package names file provided")
@@ -377,16 +376,12 @@ async def main(
             )
             raise
 
-    async_tasks, package_releases_messages_sent = package_releases_update(
+    package_releases_messages_sent = package_releases_update(
         monitored_packages,
         graph=graph,
         package_names=package_names,
         only_if_package_seen=only_if_package_seen,
     )
-
-    _LOGGER.info("Package releases will send: %r messages", len(async_tasks))
-
-    await asyncio.gather(*async_tasks)
 
     _METRIC_MESSSAGES_SENT.labels(
         message_type=PackageReleasedMessage.topic_name,
@@ -406,3 +401,7 @@ async def main(
             )
         except Exception as e:
             _LOGGER.exception(f"An error occurred pushing the metrics: {str(e)}")
+
+
+if __name__ == "__main__":
+    main()

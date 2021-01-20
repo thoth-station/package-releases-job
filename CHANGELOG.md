@@ -940,3 +940,23 @@ Set resource limits of BuildConfig and Deployment to reasonable values, this wil
 ## Release 0.8.8 (2020-10-08T18:00:57)
 ### Features
 * Send messages metrics (#510)
+
+## Release 0.9.0 (2021-01-20T18:27:29)
+### Features
+* :arrow_up: Automatic update of dependencies by kebechet. (#534)
+* update to latest messaging (#530)
+* Add database metric (#533)
+* update .aicoe-ci.yaml (#527)
+* update .thoth.yaml (#526)
+* port to python 38 (#525)
+* Add maintainers (#522)
+* lock down thoth-messaging (#513)
+### Automatic Updates
+* :pushpin: Automatic update of dependency thoth-storages from 0.26.0 to 0.26.1 (#524)
+* :pushpin: Automatic update of dependency thoth-storages from 0.26.0 to 0.26.1 (#523)
+* :pushpin: Automatic update of dependency pytest from 6.1.1 to 6.1.2 (#520)
+* :pushpin: Automatic update of dependency pytest from 6.1.1 to 6.1.2 (#519)
+* :pushpin: Automatic update of dependency pytest from 6.1.1 to 6.1.2 (#518)
+* :pushpin: Automatic update of dependency thoth-common from 0.20.1 to 0.20.4 (#517)
+* :pushpin: Automatic update of dependency thoth-common from 0.20.1 to 0.20.4 (#516)
+* :pushpin: Automatic update of dependency thoth-storages from 0.25.15 to 0.26.0 (#515)

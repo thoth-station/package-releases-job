@@ -397,7 +397,7 @@ def main(
     )
 
     _METRIC_MESSSAGES_SENT.labels(
-        message_type=PackageReleasedMessage.topic_name,
+        message_type=PackageReleasedMessage().topic_name,
         env=_THOTH_DEPLOYMENT_NAME,
         version=__service_version__,
     ).inc(package_releases_messages_sent)

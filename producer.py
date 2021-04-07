@@ -88,7 +88,7 @@ _METRIC_INFO.labels(_THOTH_DEPLOYMENT_NAME, __service_version__).inc()
 _METRIC_DATABASE_SCHEMA_SCRIPT.labels(
     COMPONENT_NAME,
     GraphDatabase().get_script_alembic_version_head(),
-    _THOTH_DEPLOYMENT_NAME
+    _THOTH_DEPLOYMENT_NAME,
 ).inc()
 
 

@@ -11,7 +11,7 @@ thoth-common = "*"
 thoth-python = "*"
 jsonpath-ng = "*"
 prometheus-client = "*"
-thoth-messaging = "*"
+thoth-messaging = "<=0.13"
 click = "*"
 
 [dev-packages]

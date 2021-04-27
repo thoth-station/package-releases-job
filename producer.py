@@ -39,7 +39,8 @@ from thoth.storages import GraphDatabase
 
 from thoth.messaging import __version__ as __messaging__version__
 import thoth.messaging.producer as producer
-from thoth.messaging.package_releases import PackageReleasedMessage
+from thoth.messaging import package_released_message
+from thoth.messaging.package_releases import MessageContents as PackageReleasedContent
 
 from prometheus_client import CollectorRegistry, Gauge, Counter, push_to_gateway
 
@@ -173,10 +174,9 @@ def package_releases_update(
 ) -> int:
     """Check for updates of packages, notify about updates if configured so."""
     sources = [
-        Source(**config) for config in graph.get_python_package_index_all(enabled=True)
+        Source(**config) for config in graph.get_python_package_index_all(enabled=True)  # type: ignore
     ]
 
-    package_release = PackageReleasedMessage()
     package_releases_messages_sent = 0
 
     for package_index in sources:
@@ -228,8 +228,8 @@ def package_releases_update(
 
                     producer.publish_to_topic(
                         p,
-                        PackageReleasedMessage(),
-                        PackageReleasedMessage.MessageContents(
+                        package_released_message,
+                        PackageReleasedContent(
                             package_name=package_name,
                             package_version=package_version,
                             index_url=package_index.url,
@@ -243,7 +243,7 @@ def package_releases_update(
                         package_name,
                         package_version,
                         package_index.url,
-                        package_release.topic_name,
+                        package_released_message.topic_name,
                     )
                     package_releases_messages_sent += 1
                 else:
@@ -397,7 +397,7 @@ def main(
     )
 
     _METRIC_MESSSAGES_SENT.labels(
-        message_type=PackageReleasedMessage().topic_name,
+        message_type=package_released_message.topic_name,
         env=_THOTH_DEPLOYMENT_NAME,
         version=__service_version__,
     ).inc(package_releases_messages_sent)

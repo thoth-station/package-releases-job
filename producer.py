@@ -268,7 +268,7 @@ def package_releases_update(
                             f"Failed to do release notification for {package_name} ({package_version} "
                             f"from {package_index.url}), error is not fatal: {str(exc)}"
                         )
-
+    p.flush()
     return package_releases_messages_sent
 
 

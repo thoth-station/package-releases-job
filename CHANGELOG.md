@@ -960,3 +960,18 @@ Set resource limits of BuildConfig and Deployment to reasonable values, this wil
 * :pushpin: Automatic update of dependency thoth-common from 0.20.1 to 0.20.4 (#517)
 * :pushpin: Automatic update of dependency thoth-common from 0.20.1 to 0.20.4 (#516)
 * :pushpin: Automatic update of dependency thoth-storages from 0.25.15 to 0.26.0 (#515)
+
+## Release 0.9.1 (2021-06-03T17:36:54)
+### Features
+* :arrow_up: Automatic update of dependencies by Kebechet (#546)
+* :hatched_chick: update the prow resource limits (#545)
+* flush all pending messages (#544)
+* constrain thoth-messaging (#541)
+* :arrow_up: Automatic update of dependencies by Kebechet (#542)
+* pre-commit would be handled by prow
+* ci updates for the application
+* :arrow_up: Automatic update of dependencies by Kebechet (#540)
+* :arrow_up: Automatic update of dependencies by Kebechet (#538)
+* Adjust label metrics (#537)
+### Improvements
+* use thoth-messaging >=0.14 (#543)

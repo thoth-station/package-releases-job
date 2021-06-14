@@ -975,3 +975,10 @@ Set resource limits of BuildConfig and Deployment to reasonable values, this wil
 * Adjust label metrics (#537)
 ### Improvements
 * use thoth-messaging >=0.14 (#543)
+
+## Release 0.9.2 (2021-06-14T20:20:35)
+### Features
+* :arrow_up: Automatic update of dependencies by Kebechet
+* issue template for requesting kebechet updates
+### Bug Fixes
+* mypy error fix for package-releases-job

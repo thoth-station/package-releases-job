@@ -1,6 +1,14 @@
 thoth-package-releases-job
 --------------------------
 
+.. image:: https://img.shields.io/github/v/tag/thoth-station/package-releases-job?style=plastic
+  :target: https://github.com/thoth-station/package-releases-job/releases
+  :alt: GitHub tag (latest by date)
+
+.. image:: https://quay.io/repository/thoth-station/package-releases-job/status
+  :target: https://quay.io/repository/thoth-station/package-releases-job?tab=tags
+  :alt: Quay - Build
+
 A job for monitoring new releases on Python package indexes such as the
 `public PyPI <https://pypi.org>`_ and creating relevant entries in the graph
 database.

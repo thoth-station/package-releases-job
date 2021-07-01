@@ -982,3 +982,11 @@ Set resource limits of BuildConfig and Deployment to reasonable values, this wil
 * issue template for requesting kebechet updates
 ### Bug Fixes
 * mypy error fix for package-releases-job
+
+## Release 0.9.3 (2021-07-01T02:41:07)
+### Features
+* :arrow_up: Automatic update of dependencies by Kebechet
+* :medal_sports: set badges for easy access to content
+* :arrow_up: Automatic update of dependencies by Kebechet
+### Improvements
+* updated the mypy config to better handle issues

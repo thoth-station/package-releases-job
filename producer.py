@@ -45,7 +45,7 @@ from thoth.messaging.package_releases import MessageContents as PackageReleasedC
 from prometheus_client import CollectorRegistry, Gauge, Counter, push_to_gateway
 
 from thoth.python import Source
-from thoth.python.exceptions import NotFound
+from thoth.python.exceptions import NotFoundError
 
 init_logging()
 
@@ -189,7 +189,7 @@ def package_releases_update(
         for package_name in package_names or package_index.get_packages():
             try:
                 package_versions = package_index.get_package_versions(package_name)
-            except NotFound as exc:
+            except NotFoundError as exc:
                 _LOGGER.debug(
                     "No versions found for package %r on %r: %s",
                     package_name,

@@ -990,3 +990,10 @@ Set resource limits of BuildConfig and Deployment to reasonable values, this wil
 * :arrow_up: Automatic update of dependencies by Kebechet
 ### Improvements
 * updated the mypy config to better handle issues
+
+## Release 0.10.0 (2021-07-26T20:05:28)
+### Features
+* Enable per-index only-if-package-seen configuration
+* :arrow_up: Automatic update of dependencies by Kebechet
+* Add standard GitHub templates
+* :arrow_up: Automatic update of dependencies by Kebechet

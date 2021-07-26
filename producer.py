@@ -170,16 +170,21 @@ def package_releases_update(
     *,
     graph: GraphDatabase,
     package_names: Optional[List[str]] = None,
-    only_if_package_seen: bool = False,
 ) -> int:
     """Check for updates of packages, notify about updates if configured so."""
-    sources = [
-        Source(**config) for config in graph.get_python_package_index_all(enabled=True)  # type: ignore
-    ]
+    sources = []
+    for index_config in graph.get_python_package_index_all(enabled=True):
+        only_if_package_seen = index_config.pop("only_if_package_seen", True)
+        source = Source(
+            url=index_config["url"],
+            warehouse_api_url=index_config["warehouse_api_url"],
+            verify_ssl=index_config["verify_ssl"],
+        )
+        sources.append((source, only_if_package_seen))
 
     package_releases_messages_sent = 0
 
-    for package_index in sources:
+    for package_index, only_if_package_seen in sources:
         _LOGGER.info("Checking index %r for new package releases", package_index.url)
         for package_name in package_names or package_index.get_packages():
             try:
@@ -298,12 +303,6 @@ def package_releases_update(
     help="A filesystem path or an URL to monitoring configuration file.",
 )
 @cli.option(
-    "--only-if-package-seen",
-    is_flag=True,
-    envvar="THOTH_PACKAGE_RELEASES_ONLY_IF_PACKAGE_SEEN",
-    help="Create entries only for packages for which entries already exist in the graph database.",
-)
-@cli.option(
     "--package-names-file",
     "-f",
     type=str,
@@ -324,7 +323,6 @@ def main(
     ctx=None,
     verbose: bool = False,
     monitoring_config: Optional[str] = None,
-    only_if_package_seen: bool = False,
     package_names_file: Optional[str] = None,
     package_names_file_jsonpath: Optional[str] = None,
 ):
@@ -344,12 +342,6 @@ def main(
     if not package_names_file_jsonpath and package_names_file:
         raise ValueError(
             "JSON path required when obtaining package names from a JSON file"
-        )
-
-    if only_if_package_seen and package_names_file:
-        raise ValueError(
-            "Only one of --package-names-file and --only-if-packages-seen is "
-            "allowed method for describing packages to be checked"
         )
 
     package_names = None
@@ -374,10 +366,9 @@ def main(
     graph = GraphDatabase()
     graph.connect()
 
-    if only_if_package_seen:
-        # An optimization - we don't need to iterate over a large set present on index.
-        # Check only packages known to Thoth.
-        package_names = graph.get_python_package_version_entities_names_all()
+    # An optimization - we don't need to iterate over a large set present on index.
+    # Check only packages known to Thoth based on index configuration.
+    package_names = graph.get_python_package_version_entities_names_all()
 
     monitored_packages = None
     if monitoring_config:
@@ -393,7 +384,6 @@ def main(
         monitored_packages,
         graph=graph,
         package_names=package_names,
-        only_if_package_seen=only_if_package_seen,
     )
 
     _METRIC_MESSSAGES_SENT.labels(

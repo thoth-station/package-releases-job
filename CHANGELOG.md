@@ -997,3 +997,9 @@ Set resource limits of BuildConfig and Deployment to reasonable values, this wil
 * :arrow_up: Automatic update of dependencies by Kebechet
 * Add standard GitHub templates
 * :arrow_up: Automatic update of dependencies by Kebechet
+
+## Release 0.10.1 (2021-07-30T10:23:13)
+### Features
+* :arrow_up: Automatic update of dependencies by Kebechet
+* Update thoth-python library
+* Rename exception to conform new thoth-python update

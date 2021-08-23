@@ -19,7 +19,6 @@
 
 import logging
 import asyncio
-from typing import Optional
 from typing import List
 
 import os
@@ -59,7 +58,7 @@ _THOTH_DEPLOYMENT_NAME = os.environ["THOTH_DEPLOYMENT_NAME"]
 _THOTH_METRICS_PUSHGATEWAY_URL = os.getenv("PROMETHEUS_PUSHGATEWAY_URL")
 # Number of concurrent requests to obtain new releases information. Note if the chunk size is too large,
 # the process can reach too many open sockets.
-_CHUNK_SIZE = os.getenv("THOTH_PACKAGE_RELEASES_CHUNK_SIZE", 256)
+_CHUNK_SIZE = int(os.getenv("THOTH_PACKAGE_RELEASES_CHUNK_SIZE", 256))
 
 COMPONENT_NAME = "thoth-package-releases-job"
 
@@ -213,7 +212,7 @@ def _do_package_releases_update(
 def package_releases_update(
     *,
     graph: GraphDatabase,
-    package_names: Optional[List[str]] = None,
+    package_names: List[str],
 ) -> int:
     """Check for updates of packages, notify about updates if configured so."""
     sources = []

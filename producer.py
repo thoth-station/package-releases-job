@@ -186,7 +186,7 @@ def package_releases_update(
 
     for package_index, only_if_package_seen in sources:
         _LOGGER.info("Checking index %r for new package releases", package_index.url)
-        for package_name in package_names or package_index.get_packages():
+        for package_name in package_names if only_if_package_seen else package_index.get_packages():
             try:
                 package_versions = package_index.get_package_versions(package_name)
             except NotFoundError as exc:

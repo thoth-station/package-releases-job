@@ -195,12 +195,13 @@ def _do_package_releases_update(
 
     result = 0
     for i in range(0, len(package_names), _CHUNK_SIZE):
-        loop = asyncio.get_event_loop()
+        loop = asyncio.new_event_loop()
         group = asyncio.gather(
             *(
                 _package_releases_worker(graph, async_package_index, pn)
                 for pn in package_names[i : i + _CHUNK_SIZE]
-            )
+            ),
+            loop=loop,
         )
         results = loop.run_until_complete(group)
         result += sum(results)

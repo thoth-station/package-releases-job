@@ -17,15 +17,11 @@
 
 """Check for new releases on Python index and mark new packages in the graph database."""
 
-import sys
 import logging
-from typing import Dict, Optional, Any, List
+from typing import Optional
+from typing import List
 
 import os
-import requests
-import yaml
-
-from jsonpath_ng import parse
 
 import click as cli
 
@@ -100,73 +96,7 @@ def _print_version(ctx, _, value) -> None:
     ctx.exit()
 
 
-def _load_package_monitoring_config(config_path: str) -> Optional[Dict[Any, Any]]:
-    """Load package monitoring configuration, retrieve it from a remote HTTP server if needed."""
-    if not config_path:
-        return None
-
-    if config_path.startswith(("https://", "http://")):
-        _LOGGER.debug(f"Loading remote monitoring config from {config_path}")
-        content = requests.get(config_path)
-        content.raise_for_status()
-        content_info = content.text
-    else:
-        _LOGGER.debug(f"Loading local monitoring config from {config_path}")
-        with open(config_path, "r") as config_file:
-            content_info = config_file.read()
-
-    return yaml.safe_load(content_info)
-
-
-def release_notification(
-    monitored_packages: dict, package_name: str, package_version: str, index_url: str
-) -> bool:
-    """Check for release notification in monitoring configuration and trigger notification if requested."""
-    was_triggered = False
-    for trigger in monitored_packages.get(package_name, {}).get("triggers") or []:
-        _LOGGER.debug(
-            f"Triggering release notification for {package_name} ({package_version})"
-        )
-        try:
-            # We expand URL based on environment variables, package name and package version so a user can fully
-            # configure what should be present in the URL.
-            kwargs = {}
-            if trigger["url"].startswith("https://"):
-                kwargs["verify"] = trigger.get("tls_verify", True)
-
-            response = requests.post(
-                trigger["url"].format(
-                    **os.environ,
-                    package_name=package_name,
-                    package_version=package_version,
-                    index_url=index_url,
-                    thoth_deployment_name=_THOTH_DEPLOYMENT_NAME,
-                ),
-                data={
-                    "package_name": package_name,
-                    "package_version": package_version,
-                    "index_url": index_url,
-                    "thoth_deployment_name": _THOTH_DEPLOYMENT_NAME,
-                },
-                **kwargs,
-            )
-            response.raise_for_status()
-            was_triggered = True
-            _LOGGER.info(
-                f"Successfully triggered release notification for {package_name} "
-                f"({package_version}) to {trigger['url']}"
-            )
-        except Exception as exc:
-            _LOGGER.exception(
-                f"Failed to trigger release notification for {package_name} "
-                f"({package_version}) for trigger {trigger}, error is not fatal: {str(exc)}"
-            )
-
-    return was_triggered
-
-
 def package_releases_update(
-    monitored_packages: Optional[dict],
     *,
     graph: GraphDatabase,
     package_names: Optional[List[str]] = None,
@@ -259,20 +189,6 @@ def package_releases_update(
                         package_index.url,
                     )
 
-                if added and monitored_packages:
-                    entity = added[0]
-                    try:
-                        release_notification(
-                            monitored_packages,
-                            entity.package_name,
-                            entity.package_version,
-                            package_index.url,
-                        )
-                    except Exception as exc:
-                        _LOGGER.exception(
-                            f"Failed to do release notification for {package_name} ({package_version} "
-                            f"from {package_index.url}), error is not fatal: {str(exc)}"
-                        )
     p.flush()
     return package_releases_messages_sent
 
@@ -293,38 +209,9 @@ def package_releases_update(
     expose_value=False,
     help="Print version and exit.",
 )
-@cli.option(
-    "--monitoring-config",
-    "-m",
-    type=str,
-    show_default=True,
-    metavar="CONFIG",
-    envvar="THOTH_PACKAGE_RELEASES_MONITORING_CONFIG",
-    help="A filesystem path or an URL to monitoring configuration file.",
-)
-@cli.option(
-    "--package-names-file",
-    "-f",
-    type=str,
-    metavar="FILE.json",
-    envvar="THOTH_PACKAGE_RELEASES_PACKAGE_NAMES_FILE",
-    help="A path to a JSON file that stores information about package names, "
-    "disjoint with `--only-if-package-seen`.",
-)
-@cli.option(
-    "--package-names-file-jsonpath",
-    type=str,
-    metavar="JSONPATH",
-    envvar="THOTH_PACKAGE_RELEASES_PACKAGE_NAMES_FILE_JSONPATH",
-    help="A path to a JSON/YAML file that stores information about package names, "
-    "disjoint with `--only-if-package-seen`.",
-)
 def main(
     ctx=None,
     verbose: bool = False,
-    monitoring_config: Optional[str] = None,
-    package_names_file: Optional[str] = None,
-    package_names_file_jsonpath: Optional[str] = None,
 ):
     """Check for updates in PyPI RSS feed and add missing entries to the graph database."""
     if ctx:
@@ -336,32 +223,6 @@ def main(
     _LOGGER.debug("Debug mode turned on")
     _LOGGER.info("Package releases version: %r", __version__)
 
-    if package_names_file_jsonpath and not package_names_file:
-        raise ValueError("Cannot use JSON path when no package names file provided")
-
-    if not package_names_file_jsonpath and package_names_file:
-        raise ValueError(
-            "JSON path required when obtaining package names from a JSON file"
-        )
-
-    package_names = None
-    if package_names_file:
-        with open(package_names_file, "r") as f:
-            content = yaml.safe_load(f)
-
-        package_names = []
-        for item in parse(package_names_file_jsonpath).find(content):
-            for entry in item.value:
-                if not isinstance(entry, str):
-                    raise ValueError(
-                        f"Found item in the file is not a string describing package name: {item!r}"
-                    )
-                package_names.append(entry)
-
-        if not package_names:
-            _LOGGER.warning("No packages to be checked for new releases")
-            sys.exit(2)
-
     # Connect once we really need to.
     graph = GraphDatabase()
     graph.connect()
@@ -370,18 +231,7 @@ def main(
     # Check only packages known to Thoth based on index configuration.
     package_names = graph.get_python_package_version_entities_names_all()
 
-    monitored_packages = None
-    if monitoring_config:
-        try:
-            monitored_packages = _load_package_monitoring_config(monitoring_config)
-        except Exception:
-            _LOGGER.exception(
-                f"Failed to load monitoring configuration from {monitoring_config}"
-            )
-            raise
-
     package_releases_messages_sent = package_releases_update(
-        monitored_packages,
         graph=graph,
         package_names=package_names,
     )

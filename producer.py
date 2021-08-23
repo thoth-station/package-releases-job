@@ -18,6 +18,7 @@
 """Check for new releases on Python index and mark new packages in the graph database."""
 
 import logging
+import asyncio
 from typing import Optional
 from typing import List
 
@@ -41,6 +42,7 @@ from thoth.messaging.package_releases import MessageContents as PackageReleasedC
 from prometheus_client import CollectorRegistry, Gauge, Counter, push_to_gateway
 
 from thoth.python import Source
+from thoth.python import AIOSource
 from thoth.python.exceptions import NotFoundError
 
 init_logging()
@@ -55,6 +57,9 @@ _LOGGER.info("Thoth-package-releases-job-producer v%s", __service_version__)
 
 _THOTH_DEPLOYMENT_NAME = os.environ["THOTH_DEPLOYMENT_NAME"]
 _THOTH_METRICS_PUSHGATEWAY_URL = os.getenv("PROMETHEUS_PUSHGATEWAY_URL")
+# Number of concurrent requests to obtain new releases information. Note if the chunk size is too large,
+# the process can reach too many open sockets.
+_CHUNK_SIZE = os.getenv("THOTH_PACKAGE_RELEASES_CHUNK_SIZE", 256)
 
 COMPONENT_NAME = "thoth-package-releases-job"
 
@@ -96,6 +101,114 @@ def _print_version(ctx, _, value) -> None:
     ctx.exit()
 
 
+async def _package_releases_worker(
+    graph: GraphDatabase, package_index: AIOSource, package_name: str
+) -> int:
+    """Async handling of new package releases checks."""
+    try:
+        package_versions = await package_index.get_package_versions(package_name)
+    except NotFoundError as exc:
+        _LOGGER.debug(
+            "No versions found for package %r on %r: %s",
+            package_name,
+            package_index.url,
+            str(exc),
+        )
+        return 0
+    except Exception as exc:
+        _LOGGER.exception(
+            "Failed to retrieve package versions for %r: %s",
+            package_name,
+            str(exc),
+        )
+        return 0
+
+    package_releases_messages_sent = 0
+    async for package_version in package_versions:
+        added = graph.create_python_package_version_entity(
+            package_name,
+            package_version,
+            package_index.url,
+        )
+
+        if added is None:
+            _LOGGER.debug(
+                "Package %r in version %r hosted on %r was not added - it was not previously seen",
+                package_name,
+                package_version,
+                package_index.url,
+            )
+            continue
+
+        existed = added[1]
+        if not existed:
+            _LOGGER.info(
+                "New release of package %r in version %r hosted on %r added",
+                package_name,
+                package_version,
+                package_index.url,
+            )
+
+            producer.publish_to_topic(
+                p,
+                package_released_message,
+                PackageReleasedContent(
+                    package_name=package_name,
+                    package_version=package_version,
+                    index_url=package_index.url,
+                    component_name=COMPONENT_NAME,
+                    service_version=__service_version__,
+                ),
+            )
+
+            _LOGGER.debug(
+                "Package %r in version %r hosted on %r added to list to be sent as Kafka message %r",
+                package_name,
+                package_version,
+                package_index.url,
+                package_released_message.topic_name,
+            )
+            package_releases_messages_sent += 1
+        else:
+            _LOGGER.debug(
+                "Release of %r in version %r hosted on %r already present",
+                package_name,
+                package_version,
+                package_index.url,
+            )
+
+    return package_releases_messages_sent
+
+
+def _do_package_releases_update(
+    graph: GraphDatabase, package_index: Source, package_names: List[str]
+) -> int:
+    """Do the actual package releases gathering for a specific Python package index."""
+    # From now on, we will use async.
+    async_package_index = AIOSource(
+        url=package_index.url,
+        warehouse_api_url=package_index.warehouse_api_url,
+        verify_ssl=package_index.verify_ssl,
+        name=package_index.name,
+        warehouse=package_index.warehouse,
+    )
+
+    result = 0
+    for i in range(0, len(package_names), _CHUNK_SIZE):
+        loop = asyncio.get_event_loop()
+        group = asyncio.gather(
+            *(
+                _package_releases_worker(graph, async_package_index, pn)
+                for pn in package_names[i : i + _CHUNK_SIZE]
+            )
+        )
+        results = loop.run_until_complete(group)
+        result += sum(results)
+        loop.close()
+
+    return result
+
+
 def package_releases_update(
     *,
     graph: GraphDatabase,
@@ -116,78 +229,23 @@ def package_releases_update(
 
     for package_index, only_if_package_seen in sources:
         _LOGGER.info("Checking index %r for new package releases", package_index.url)
-        for package_name in package_names or package_index.get_packages():
+        use_package_names = package_names
+        if not only_if_package_seen:
             try:
-                package_versions = package_index.get_package_versions(package_name)
-            except NotFoundError as exc:
-                _LOGGER.debug(
-                    "No versions found for package %r on %r: %s",
-                    package_name,
-                    package_index.url,
-                    str(exc),
-                )
-                continue
+                package_index.get_packages()
             except Exception as exc:
                 _LOGGER.exception(
-                    "Failed to retrieve package versions for %r: %s",
-                    package_name,
+                    "Failed to obtain package names listing from %r, skipping: %s",
+                    package_index.url,
                     str(exc),
                 )
                 continue
 
-            for package_version in package_versions:
-                added = graph.create_python_package_version_entity(
-                    package_name,
-                    package_version,
-                    package_index.url,
-                    only_if_package_seen=only_if_package_seen,
-                )
-
-                if added is None:
-                    _LOGGER.debug(
-                        "Package %r in version %r hosted on %r was not added - it was not previously seen",
-                        package_name,
-                        package_version,
-                        package_index.url,
-                    )
-                    continue
-
-                existed = added[1]
-                if not existed:
-                    _LOGGER.info(
-                        "New release of package %r in version %r hosted on %r added",
-                        package_name,
-                        package_version,
-                        package_index.url,
-                    )
-
-                    producer.publish_to_topic(
-                        p,
-                        package_released_message,
-                        PackageReleasedContent(
-                            package_name=package_name,
-                            package_version=package_version,
-                            index_url=package_index.url,
-                            component_name=COMPONENT_NAME,
-                            service_version=__service_version__,
-                        ),
-                    )
-
-                    _LOGGER.debug(
-                        "Package %r in version %r hosted on %r added to list to be sent as Kafka message %r",
-                        package_name,
-                        package_version,
-                        package_index.url,
-                        package_released_message.topic_name,
-                    )
-                    package_releases_messages_sent += 1
-                else:
-                    _LOGGER.debug(
-                        "Release of %r in version %r hosted on %r already present",
-                        package_name,
-                        package_version,
-                        package_index.url,
-                    )
+        package_releases_messages_sent += _do_package_releases_update(
+            graph,
+            package_index,
+            use_package_names,
+        )
 
     p.flush()
     return package_releases_messages_sent

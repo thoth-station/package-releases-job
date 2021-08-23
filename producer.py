@@ -116,7 +116,7 @@ async def _package_releases_worker(
         )
         return 0
     except Exception as exc:
-        _LOGGER.exception(
+        _LOGGER.warning(
             "Failed to retrieve package versions for %r: %s",
             package_name,
             str(exc),
@@ -233,7 +233,7 @@ def package_releases_update(
         use_package_names = package_names
         if not only_if_package_seen:
             try:
-                package_index.get_packages()
+                use_package_names = list(package_index.get_packages())
             except Exception as exc:
                 _LOGGER.exception(
                     "Failed to obtain package names listing from %r, skipping: %s",

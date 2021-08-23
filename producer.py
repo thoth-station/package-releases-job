@@ -19,6 +19,7 @@
 
 import logging
 import asyncio
+import random
 from typing import List
 
 import os
@@ -288,6 +289,8 @@ def main(
     # An optimization - we don't need to iterate over a large set present on index.
     # Check only packages known to Thoth based on index configuration.
     package_names = graph.get_python_package_version_entities_names_all()
+    # Randomize the list to randomize access on eventual kills.
+    random.shuffle(package_names)
 
     package_releases_messages_sent = package_releases_update(
         graph=graph,

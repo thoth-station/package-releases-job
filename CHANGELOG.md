@@ -1,5 +1,17 @@
 # Changelog for Thoth's Package Releases Job
 
+## Release 0.11.0 (2021-08-24T13:47:09)
+### Features
+* Dependency update to have new thoth-python
+* Randomize package names order to avoid same path on kill
+* Make typing happy
+* Add a new loop for each gathering
+* Fix env markers in the lock file
+* Remove old bits no longer used in deployment
+### Improvements
+* Use package names obtained from the index
+* Rewrite to use asyncio for more optimal new releases retrieval
+
 ## [0.4.0] - 2018-Jul-04 - goern
 
 ### Added

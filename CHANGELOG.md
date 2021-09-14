@@ -1,5 +1,10 @@
 # Changelog for Thoth's Package Releases Job
 
+## Release 0.11.1 (2021-09-14T21:20:35)
+### Features
+* Add harshad as a maintainer
+* Update of the dependencies
+
 ## Release 0.11.0 (2021-08-24T13:47:09)
 ### Features
 * Dependency update to have new thoth-python

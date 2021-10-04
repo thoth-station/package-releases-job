@@ -41,6 +41,7 @@ from thoth.messaging.package_releases import MessageContents as PackageReleasedC
 
 from prometheus_client import CollectorRegistry, Gauge, Counter, push_to_gateway
 
+from thoth.python import __version__ as __python__version__
 from thoth.python import Source
 from thoth.python import AIOSource
 from thoth.python.exceptions import NotFoundError
@@ -52,7 +53,7 @@ prometheus_registry = CollectorRegistry()
 p = producer.create_producer()
 
 _LOGGER = logging.getLogger("thoth.package_releases_job")
-__service_version__ = f"{__version__}+storages.{__storages__version__}.common.{__common__version__}.messaging.{__messaging__version__}"  # noqa: E501
+__service_version__ = f"{__version__}+storages.{__storages__version__}.common.{__common__version__}.messaging.{__messaging__version__}.python.{__python__version__}"  # noqa: E501
 _LOGGER.info("Thoth-package-releases-job-producer v%s", __service_version__)
 
 _THOTH_DEPLOYMENT_NAME = os.environ["THOTH_DEPLOYMENT_NAME"]

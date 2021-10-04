@@ -1,5 +1,10 @@
 # Changelog for Thoth's Package Releases Job
 
+## Release 0.11.4 (2021-10-04T13:58:46)
+### Features
+* :arrow_up: Automatic update of dependencies by Kebechet for the ubi8 environment
+* Expose thoth-python version
+
 ## Release 0.11.3 (2021-09-30T09:04:12)
 ### Features
 * :arrow_up: Automatic update of dependencies by Kebechet for the ubi8 environment

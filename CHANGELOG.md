@@ -1,5 +1,9 @@
 # Changelog for Thoth's Package Releases Job
 
+## Release 0.11.6 (2021-12-24T16:14:50)
+* :arrow_up: Automatic update of dependencies by Kebechet for the ubi8 environment
+* :arrow_up: Automatic update of dependencies by Kebechet for the ubi8 environment
+
 ## Release 0.11.5 (2021-11-08T12:04:55)
 * :arrow_up: Automatic update of dependencies by Kebechet for the ubi8 environment
 

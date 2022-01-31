@@ -1,5 +1,11 @@
 # Changelog for Thoth's Package Releases Job
 
+## Release 0.11.7 (2022-01-31T21:49:24)
+* :arrow_up: Automatic update of dependencies by Kebechet for the ubi8 environment
+* Remove unused .thothTemplate.yaml
+* :arrow_up: Automatic update of dependencies by Kebechet for the ubi8 environment
+* Enable TLS verification
+
 ## Release 0.11.6 (2021-12-24T16:14:50)
 * :arrow_up: Automatic update of dependencies by Kebechet for the ubi8 environment
 * :arrow_up: Automatic update of dependencies by Kebechet for the ubi8 environment

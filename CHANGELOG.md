@@ -1,5 +1,8 @@
 # Changelog for Thoth's Package Releases Job
 
+## Release 0.11.8 (2022-02-24T18:01:02)
+* :arrow_up: Automatic update of dependencies by Kebechet for the ubi8 environment
+
 ## Release 0.11.7 (2022-01-31T21:49:24)
 * :arrow_up: Automatic update of dependencies by Kebechet for the ubi8 environment
 * Remove unused .thothTemplate.yaml

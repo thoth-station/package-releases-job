@@ -1,5 +1,11 @@
 # Changelog for Thoth's Package Releases Job
 
+## Release 0.11.9 (2022-05-09T19:37:09)
+* 040b8a3 :ship: Bump up base image initialized in CI.
+* 55d6646 :arrow_up: Automatic update of dependencies by Kebechet for the ubi8 environment
+* 39b2d11 :arrow_up: Automatic update of dependencies by Kebechet for the ubi8 environment
+* 13ee1a3 :ship: Bump up base image initialized in CI.
+
 ## Release 0.11.8 (2022-02-24T18:01:02)
 * :arrow_up: Automatic update of dependencies by Kebechet for the ubi8 environment
 

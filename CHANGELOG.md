@@ -1,5 +1,14 @@
 # Changelog for Thoth's Package Releases Job
 
+## Release 0.11.10 (2022-08-23T04:21:29)
+* bcc4bd8 :hatched_chick: Updated the dependencies and prow config
+* ced92f3 :arrow_up: Automatic update of dependencies by Kebechet for the ubi8 environment
+* c9be92e :arrow_up: Automatic update of dependencies by Kebechet for the ubi8 environment
+* 6b59e56 Upgrade pre-commit ci
+* 1f7c8e0 Auto update pre-commit hooks
+* 0d18db4 Use https for pre-commits
+* 6bd7b9b :ship: Bump up base image initialized in CI.
+
 ## Release 0.11.9 (2022-05-09T19:37:09)
 * 040b8a3 :ship: Bump up base image initialized in CI.
 * 55d6646 :arrow_up: Automatic update of dependencies by Kebechet for the ubi8 environment

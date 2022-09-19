@@ -1,0 +1,35 @@
+[project]
+name = "package-releases-job"
+description = "Check packages updates on Python package indexes"
+readme = "README.rst"
+requires-python = ">=3.8"
+license = {file = "LICENSE"}
+version = "v0.11.10"
+
+[project.scripts]
+package-releases-job = "producer:main"
+
+[build-system]
+requires = ["setuptools", "wheel"]
+
+[tool.black]
+line-length = 120
+target-version = ['py38']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | build
+  | dist
+)/
+'''
+
+[tool.mypy]
+plugins = [
+    "pydantic.mypy"
+]

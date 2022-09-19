@@ -26,22 +26,18 @@ import os
 
 import click as cli
 
-from version import __version__
+from importlib.metadata import version, PackageNotFoundError
 
-from thoth.common import __version__ as __common__version__
 from thoth.common import init_logging
 
-from thoth.storages import __version__ as __storages__version__
 from thoth.storages import GraphDatabase
 
-from thoth.messaging import __version__ as __messaging__version__
 import thoth.messaging.producer as producer
 from thoth.messaging import package_released_message
 from thoth.messaging.package_releases import MessageContents as PackageReleasedContent
 
 from prometheus_client import CollectorRegistry, Gauge, Counter, push_to_gateway
 
-from thoth.python import __version__ as __python__version__
 from thoth.python import Source
 from thoth.python import AIOSource
 from thoth.python.exceptions import NotFoundError
@@ -53,7 +49,14 @@ prometheus_registry = CollectorRegistry()
 p = producer.create_producer()
 
 _LOGGER = logging.getLogger("thoth.package_releases_job")
-__service_version__ = f"{__version__}+storages.{__storages__version__}.common.{__common__version__}.messaging.{__messaging__version__}.python.{__python__version__}"  # noqa: E501
+__version__: str = "0.11.11"
+
+__service_version__ = (
+    f"{__version__}+"
+    + ".".join(version(f"thoth-{p}") for p in ["storages", "common", "messaging"])
+    + f".python.{version('thoth-python')}"
+)
+
 _LOGGER.info("Thoth-package-releases-job-producer v%s", __service_version__)
 
 _THOTH_DEPLOYMENT_NAME = os.environ["THOTH_DEPLOYMENT_NAME"]
@@ -307,7 +310,3 @@ def main(
             )
         except Exception as e:
             _LOGGER.exception(f"An error occurred pushing the metrics: {str(e)}")
-
-
-if __name__ == "__main__":
-    main()

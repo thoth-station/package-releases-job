@@ -4,4 +4,4 @@
 # command and debug level
 #
 
-exec python producer.py
+exec packages-releases-job

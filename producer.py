@@ -102,9 +102,7 @@ def _print_version(ctx, _, value) -> None:
     ctx.exit()
 
 
-async def _package_releases_worker(
-    graph: GraphDatabase, package_index: AIOSource, package_name: str
-) -> int:
+async def _package_releases_worker(graph: GraphDatabase, package_index: AIOSource, package_name: str) -> int:
     """Async handling of new package releases checks."""
     try:
         package_versions = await package_index.get_package_versions(package_name)
@@ -181,9 +179,7 @@ async def _package_releases_worker(
     return package_releases_messages_sent
 
 
-def _do_package_releases_update(
-    graph: GraphDatabase, package_index: Source, package_names: List[str]
-) -> int:
+def _do_package_releases_update(graph: GraphDatabase, package_index: Source, package_names: List[str]) -> int:
     """Do the actual package releases gathering for a specific Python package index."""
     # From now on, we will use async.
     async_package_index = AIOSource(
@@ -198,10 +194,7 @@ def _do_package_releases_update(
     for i in range(0, len(package_names), _CHUNK_SIZE):
         loop = asyncio.new_event_loop()
         group = asyncio.gather(
-            *(
-                _package_releases_worker(graph, async_package_index, pn)
-                for pn in package_names[i : i + _CHUNK_SIZE]
-            ),
+            *(_package_releases_worker(graph, async_package_index, pn) for pn in package_names[i : i + _CHUNK_SIZE]),
             loop=loop,
         )
         results = loop.run_until_complete(group)
@@ -306,9 +299,7 @@ def main(
 
     if _THOTH_METRICS_PUSHGATEWAY_URL:
         try:
-            _LOGGER.debug(
-                f"Submitting metrics to Prometheus pushgateway {_THOTH_METRICS_PUSHGATEWAY_URL}"
-            )
+            _LOGGER.debug(f"Submitting metrics to Prometheus pushgateway {_THOTH_METRICS_PUSHGATEWAY_URL}")
             push_to_gateway(
                 _THOTH_METRICS_PUSHGATEWAY_URL,
                 job="package-releases",

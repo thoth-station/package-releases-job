@@ -1,5 +1,13 @@
 # Changelog for Thoth's Package Releases Job
 
+## Release 0.11.11 (2022-09-21T19:47:10)
+* a06fb87 :arrow_up: Automatic update of dependencies by Kebechet for the ubi8 environment
+* c548af0 :ship: Bump up base image initialized in CI.
+* 6c78038 Black formatting
+* 953d1b9 Switch mypy to pre-commit / pyproject
+* baa57cb :arrow_up: Automatic update of dependencies by Kebechet for the ubi8 environment
+* 0d16a3f :arrow_up: Automatic update of dependencies by Kebechet for the ubi8 environment
+
 ## Release 0.11.10 (2022-08-23T04:21:29)
 * bcc4bd8 :hatched_chick: Updated the dependencies and prow config
 * ced92f3 :arrow_up: Automatic update of dependencies by Kebechet for the ubi8 environment

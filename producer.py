@@ -193,7 +193,7 @@ def _do_package_releases_update(graph: GraphDatabase, package_index: Source, pac
     result = 0
     for i in range(0, len(package_names), _CHUNK_SIZE):
         loop = asyncio.new_event_loop()
-        group = asyncio.gather(
+        group = asyncio.gather(  # type: ignore
             *(_package_releases_worker(graph, async_package_index, pn) for pn in package_names[i : i + _CHUNK_SIZE]),
             loop=loop,
         )

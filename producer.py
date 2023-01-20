@@ -20,24 +20,19 @@
 import logging
 import asyncio
 import random
-from typing import List
-
 import os
 
+from typing import List
+
+from importlib.metadata import version
+from prometheus_client import CollectorRegistry, Gauge, Counter, push_to_gateway
 import click as cli
 
-from importlib.metadata import version, PackageNotFoundError
-
 from thoth.common import init_logging
-
 from thoth.storages import GraphDatabase
-
 import thoth.messaging.producer as producer
 from thoth.messaging import package_released_message
 from thoth.messaging.package_releases import MessageContents as PackageReleasedContent
-
-from prometheus_client import CollectorRegistry, Gauge, Counter, push_to_gateway
-
 from thoth.python import Source
 from thoth.python import AIOSource
 from thoth.python.exceptions import NotFoundError
